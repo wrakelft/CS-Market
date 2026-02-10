@@ -44,12 +44,4 @@ public class RentalDao {
                     .build();
         });
     }
-
-    public int cleanupExpiredReservations() {
-        Integer cleared = jdbcTemplate.queryForObject(
-                "SELECT cleanup_expired_reservations()",
-                Integer.class
-        );
-        return cleared == null ? 0 : cleared;
-    }
 }

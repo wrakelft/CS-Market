@@ -21,11 +21,4 @@ public class TestRentalController {
                            @RequestParam Integer days) {
         return rentalService.rentSkin(renterId, announcementId, days);
     }
-
-    // POST /test/cleanup
-    @PostMapping("/cleanup")
-    public Map<String, Integer> cleanup() {
-        int cleared = rentalService.cleanupExpiredReservations();
-        return Map.of("cleared", cleared);
-    }
 }
