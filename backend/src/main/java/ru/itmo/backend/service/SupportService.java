@@ -47,14 +47,23 @@ public class SupportService {
         if (req.getAttachments() != null) {
             for (var a : req.getAttachments()) {
                 if (a == null) continue;
-                if (a.getFileName() == null || a.getFileName().isBlank())
+
+                String fileName = a.getFileName() != null ? a.getFileName().trim() : null;
+                String fileUrl = a.getFileUrl() != null ? a.getFileUrl().trim() : null;
+
+                if (fileName == null || fileName.isBlank())
                     throw new BadRequestException("attachment.fileName is required");
-                if (a.getFileUrl() == null || a.getFileUrl().isBlank())
+                if (fileUrl == null || fileUrl.isBlank())
                     throw new BadRequestException("attachment.fileUrl is required");
 
+                // ✅ ВАЖНО: проверка уникальности ДО вставки, чтобы не ловить 500
+                if (attachmentRepository.existsByFileUrl(fileUrl)) {
+                    throw new BadRequestException("Attachment with this fileUrl already exists: " + fileUrl);
+                }
+
                 Attachment att = new Attachment();
-                att.setFileName(a.getFileName().trim());
-                att.setFileUrl(a.getFileUrl().trim());
+                att.setFileName(fileName);
+                att.setFileUrl(fileUrl);
                 att.setTicket(saved);
 
                 Attachment attSaved = attachmentRepository.save(att);
@@ -82,8 +91,8 @@ public class SupportService {
     public List<TicketDto> getUserTickets(Integer userId) {
         if (userId == null || userId <= 0) throw new BadRequestException("userId must be > 0");
 
-        // чтобы сразу отдать NotFound если юзера нет
-        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User not found: " + userId));
+        userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
 
         List<Ticket> tickets = ticketRepository.findAllByUser_IdOrderByCreatedAtDesc(userId);
 
@@ -111,5 +120,68 @@ public class SupportService {
         }
 
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttachmentDto> getTicketAttachments(Integer ticketId) {
+        if (ticketId == null || ticketId <= 0) throw new BadRequestException("ticketId must be > 0");
+
+        if (!ticketRepository.existsById(ticketId)) {
+            throw new NotFoundException("Ticket not found: " + ticketId);
+        }
+
+        return attachmentRepository.findAllByTicket_Id(ticketId).stream()
+                .map(a -> AttachmentDto.builder()
+                        .id(a.getId())
+                        .fileName(a.getFileName())
+                        .fileUrl(a.getFileUrl())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public AttachmentDto addAttachment(Integer ticketId, AttachmentDto dto) {
+        if (ticketId == null || ticketId <= 0) throw new BadRequestException("ticketId must be > 0");
+        if (dto == null) throw new BadRequestException("body is required");
+
+        String fileName = dto.getFileName() != null ? dto.getFileName().trim() : null;
+        String fileUrl = dto.getFileUrl() != null ? dto.getFileUrl().trim() : null;
+
+        if (fileName == null || fileName.isBlank())
+            throw new BadRequestException("fileName is required");
+        if (fileUrl == null || fileUrl.isBlank())
+            throw new BadRequestException("fileUrl is required");
+
+        // ✅ ВАЖНО: проверка уникальности ДО вставки, чтобы не ловить 500
+        if (attachmentRepository.existsByFileUrl(fileUrl)) {
+            throw new BadRequestException("Attachment with this fileUrl already exists: " + fileUrl);
+        }
+
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
+
+        Attachment att = new Attachment();
+        att.setFileName(fileName);
+        att.setFileUrl(fileUrl);
+        att.setTicket(ticket);
+
+        Attachment saved = attachmentRepository.save(att);
+
+        return AttachmentDto.builder()
+                .id(saved.getId())
+                .fileName(saved.getFileName())
+                .fileUrl(saved.getFileUrl())
+                .build();
+    }
+
+    @Transactional
+    public void deleteAttachment(Integer attachmentId) {
+        if (attachmentId == null || attachmentId <= 0) throw new BadRequestException("attachmentId must be > 0");
+
+        if (!attachmentRepository.existsById(attachmentId)) {
+            throw new NotFoundException("Attachment not found: " + attachmentId);
+        }
+
+        attachmentRepository.deleteById(attachmentId);
     }
 }

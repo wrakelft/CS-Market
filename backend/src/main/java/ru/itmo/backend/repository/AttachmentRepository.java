@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AttachmentRepository extends JpaRepository<Attachment, Integer> {
     List<Attachment> findAllByTicket_Id(Integer ticketId);
+    boolean existsByFileUrl(String fileUrl);
 }
