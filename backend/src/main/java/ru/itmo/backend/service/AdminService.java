@@ -3,7 +3,7 @@ package ru.itmo.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.backend.dto.InstantBuyPriceDto;
+import ru.itmo.backend.dto.instant.InstantBuyPriceDto;
 import ru.itmo.backend.exception.BadRequestException;
 import ru.itmo.backend.exception.NotFoundException;
 import ru.itmo.backend.model.InstantBuyPrice;
