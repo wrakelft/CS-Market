@@ -6,5 +6,5 @@ import ru.itmo.backend.model.Attachment;
 import java.util.List;
 
 public interface AttachmentRepository extends JpaRepository<Attachment, Integer> {
-    List<Attachment> findByTicketId(Long ticketId);
+    List<Attachment> findAllByTicket_Id(Integer ticketId);
 }

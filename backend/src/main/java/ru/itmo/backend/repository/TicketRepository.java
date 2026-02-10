@@ -6,5 +6,5 @@ import ru.itmo.backend.model.Ticket;
 import java.util.List;
 
 public interface TicketRepository extends JpaRepository<Ticket, Integer> {
-    List<Ticket> findByUserId(Long userId);
+    List<Ticket> findAllByUser_IdOrderByCreatedAtDesc(Integer userId);
 }

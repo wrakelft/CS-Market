@@ -6,5 +6,5 @@ import ru.itmo.backend.model.PaymentOperation;
 import java.util.List;
 
 public interface PaymentOperationRepository extends JpaRepository<PaymentOperation, Integer> {
-    List<PaymentOperation> findByUserId(Integer userId);
+    List<PaymentOperation> findAllByUser_IdOrderByCreatedAtDesc(Integer userId);
 }

@@ -30,7 +30,6 @@ public class RentalService {
 
         RentResult result = rentalDao.rentSkin(renterId, announcementId, days);
 
-        // ✅ Если процедура вернула ошибку — превращаем в исключение
         if (!result.isSuccess()) {
             String msg = result.getMessage() == null ? "Rent failed" : result.getMessage().toLowerCase();
 
