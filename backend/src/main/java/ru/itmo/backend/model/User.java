@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import ru.itmo.backend.model.enums.UserRole;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,36 +13,34 @@ import java.util.List;
 @NoArgsConstructor @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "users") // <-- поменяй на реальное имя таблицы
+@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id") // <-- реальная колонка
-    private Long id;
+    @Column(name = "id")
+    private Integer id;
 
-    @Column(name = "nickname", nullable = false, length = 80)
+    @Column(name = "steam_id", nullable = false, unique = true, length = 64)
+    private String steamId;
+
+    @Column(name = "nickname", nullable = false, length = 64)
     private String nickname;
 
-    @Column(name = "email", nullable = false, length = 120)
-    private String email;
-
-    @JsonIgnore
-    @Column(name = "password_hash", nullable = false, length = 255)
-    private String passwordHash;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 32)
+    @Column(name = "role", nullable = false, length = 64)
     private UserRole role;
 
     @Column(name = "balance", nullable = false)
     private Integer balance;
 
-    // --- relations ---
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Builder.Default
-    private List<SupportTicket> tickets = new ArrayList<>();
+    private List<Ticket> tickets = new ArrayList<>();
 
     @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
