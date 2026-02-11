@@ -2,10 +2,8 @@ package ru.itmo.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.itmo.backend.dto.RentResult;
+import ru.itmo.backend.dto.rental.RentResult;
 import ru.itmo.backend.service.RentalService;
-
-import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor

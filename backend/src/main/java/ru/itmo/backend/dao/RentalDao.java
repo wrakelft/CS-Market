@@ -3,7 +3,7 @@ package ru.itmo.backend.dao;
 import org.springframework.jdbc.core.CallableStatementCreator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ru.itmo.backend.dto.RentResult;
+import ru.itmo.backend.dto.rental.RentResult;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;

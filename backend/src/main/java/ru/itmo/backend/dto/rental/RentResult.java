@@ -1,4 +1,4 @@
-package ru.itmo.backend.dto;
+package ru.itmo.backend.dto.rental;
 
 import lombok.Builder;
 import lombok.Value;

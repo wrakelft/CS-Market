@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.backend.dto.rental.RentRequestDto;
 import ru.itmo.backend.dto.rental.RentResponseDto;
-import ru.itmo.backend.dto.RentResult;
+import ru.itmo.backend.dto.rental.RentResult;
 import ru.itmo.backend.service.RentalService;
 
 @RestController

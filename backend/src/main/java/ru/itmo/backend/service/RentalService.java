@@ -3,7 +3,7 @@ package ru.itmo.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.itmo.backend.dao.RentalDao;
-import ru.itmo.backend.dto.RentResult;
+import ru.itmo.backend.dto.rental.RentResult;
 import ru.itmo.backend.exception.BadRequestException;
 import ru.itmo.backend.exception.InsufficientFundsException;
 import ru.itmo.backend.exception.NotFoundException;
