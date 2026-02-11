@@ -64,19 +64,22 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentOperationDto updateStatus(Integer id, String statusRaw) {
+    public PaymentOperationDto updateStatus(Integer id, String status) {
         if (id == null || id <= 0) throw new BadRequestException("id must be > 0");
-        if (statusRaw == null || statusRaw.isBlank()) throw new BadRequestException("status is required");
+        if (status == null || status.isBlank()) throw new BadRequestException("status is required");
 
         PaymentOperation op = paymentOperationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("PaymentOperation not found: " + id));
 
         PaymentStatus oldStatus = op.getStatus();
-        PaymentStatus newStatus = parseEnum(statusRaw, PaymentStatus.class, "status");
+        PaymentStatus newStatus = parseEnum(status, PaymentStatus.class, "status");
 
-        op.setStatus(newStatus);
+        // если уже SUCCESS и снова SUCCESS — ничего не делаем (чтобы не начисляло/списывалось повторно)
+        if (oldStatus == PaymentStatus.SUCCESS && newStatus == PaymentStatus.SUCCESS) {
+            return toDto(op);
+        }
 
-        // начисляем баланс ТОЛЬКО при переходе в SUCCESS
+        // применяем баланс ТОЛЬКО при переходе в SUCCESS
         if (oldStatus != PaymentStatus.SUCCESS && newStatus == PaymentStatus.SUCCESS) {
 
             User user = op.getUser();
@@ -96,7 +99,9 @@ public class PaymentService {
                 userRepository.save(user);
 
             } else if (type == PaymentOperationType.WITHDRAW) {
-                if (current < amount) throw new BadRequestException("Insufficient funds for withdraw");
+                if (current < amount) {
+                    throw new BadRequestException("Insufficient funds for withdraw");
+                }
                 user.setBalance(current - amount);
                 userRepository.save(user);
 
@@ -105,6 +110,7 @@ public class PaymentService {
             }
         }
 
+        op.setStatus(newStatus);
         PaymentOperation saved = paymentOperationRepository.save(op);
         return toDto(saved);
     }
