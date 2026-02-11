@@ -95,5 +95,24 @@ public class MarketService {
                 .toList();
     }
 
+    @Transactional
+    public void instantSell(Integer sellerId, Integer saleListingId) {
+        SaleListing listing = saleListingRepository.findById(saleListingId)
+                .orElseThrow(() -> new NotFoundException("Sale listing not found"));
+
+        if (listing.getStatus() != SaleListingStatus.ACTIVE) {
+            throw new BadRequestException("Sale listing is not active");
+        }
+
+        Integer realSellerId = listing.getInventoryItem().getUser().getId();
+        if (!realSellerId.equals(sellerId)) {
+            throw new BadRequestException("Sale listing does not belong to seller");
+        }
+
+        listing.setStatus(SaleListingStatus.INSTANT_SALE);
+        saleListingRepository.save(listing);
+    }
+
+
 
 }

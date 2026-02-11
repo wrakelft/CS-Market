@@ -31,4 +31,9 @@ public class MarketController {
     public SaleListingCreatedDto createSaleListing(@Valid @RequestBody CreateSaleListingRequestDto req) {
         return marketService.createSaleListing(req);
     }
+
+    @PostMapping("/sale-listings/{id}/instant-sell")
+    public void instantSell(@PathVariable Integer id, @RequestParam Integer sellerId) {
+        marketService.instantSell(sellerId, id);
+    }
 }

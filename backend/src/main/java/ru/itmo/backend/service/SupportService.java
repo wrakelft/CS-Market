@@ -56,7 +56,6 @@ public class SupportService {
                 if (fileUrl == null || fileUrl.isBlank())
                     throw new BadRequestException("attachment.fileUrl is required");
 
-                // ✅ ВАЖНО: проверка уникальности ДО вставки, чтобы не ловить 500
                 if (attachmentRepository.existsByFileUrl(fileUrl)) {
                     throw new BadRequestException("Attachment with this fileUrl already exists: " + fileUrl);
                 }
@@ -152,7 +151,6 @@ public class SupportService {
         if (fileUrl == null || fileUrl.isBlank())
             throw new BadRequestException("fileUrl is required");
 
-        // ✅ ВАЖНО: проверка уникальности ДО вставки, чтобы не ловить 500
         if (attachmentRepository.existsByFileUrl(fileUrl)) {
             throw new BadRequestException("Attachment with this fileUrl already exists: " + fileUrl);
         }
