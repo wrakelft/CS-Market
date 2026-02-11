@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface SaleListingRepository extends JpaRepository<SaleListing, Integer> {
     List<SaleListing> findByStatus(SaleListingStatus status);
     Optional<SaleListing> findByIdAndStatus(Integer id, SaleListingStatus status);
+    Optional<SaleListing> findFirstByInventoryItemIdAndStatus(Integer inventoryItemId, SaleListingStatus status);
 }

@@ -3,9 +3,7 @@ package ru.itmo.backend.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.itmo.backend.dto.market.PurchaseRequest;
-import ru.itmo.backend.dto.market.SaleListingPreviewDto;
-import ru.itmo.backend.dto.market.SkinPreviewDto;
+import ru.itmo.backend.dto.market.*;
 import ru.itmo.backend.service.MarketService;
 
 import java.util.List;
@@ -27,5 +25,10 @@ public class MarketController {
                                       @RequestParam(required = false) String rarity,
                                       @RequestParam(required = false) String condition) {
         return marketService.getSkins(q, collection, rarity, condition);
+    }
+
+    @PostMapping("/sale-listings")
+    public SaleListingCreatedDto createSaleListing(@Valid @RequestBody CreateSaleListingRequestDto req) {
+        return marketService.createSaleListing(req);
     }
 }
