@@ -15,6 +15,7 @@ import ru.itmo.backend.model.enums.CartItemStatus;
 import ru.itmo.backend.model.enums.CartStatus;
 import ru.itmo.backend.model.enums.SaleListingStatus;
 import ru.itmo.backend.repository.*;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 
@@ -49,10 +50,18 @@ public class CartService {
                 .saleListing(listing)
                 .price(listing.getPrice())
                 .itemStatus(CartItemStatus.ACTIVE)
-                .reservedUntil(cart.getReservedUntil())
                 .build();
 
-        cartItemRepository.save(item);
+        try {
+            cartItemRepository.save(item);
+        } catch (DataIntegrityViolationException e) {
+            String msg = e.getMostSpecificCause().getMessage();
+            if (msg != null && msg.toLowerCase().contains("already reserved")) {
+                throw new BadRequestException("Sale listing is already reserved");
+            }
+
+            throw e;
+        }
         var items = cartItemRepository.findByCartId(cart.getId());
         return CartMapper.toDto(cart, items);
     }
@@ -96,8 +105,12 @@ public class CartService {
             throw new BadRequestException("Cart item does not belong to this user");
         }
 
-        if (item.getItemStatus() != CartItemStatus.ACTIVE) {
+        if (item.getItemStatus() != CartItemStatus.RESERVED && item.getItemStatus() != CartItemStatus.ACTIVE) {
             throw new BadRequestException("Cart item is not purchasable");
+        }
+
+        if (item.getReservedUntil() != null && item.getReservedUntil().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Reservation expired");
         }
 
         SaleListing listing = item.getSaleListing();
