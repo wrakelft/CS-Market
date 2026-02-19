@@ -17,8 +17,8 @@ public class RentalListingController {
     private final RentalListingService rentalListingService;
 
     @GetMapping("/rent")
-    public List<RentalListingDto> getRentListings() {
-        return rentalListingService.getAllListings();
+    public List<RentalListingDto> getRentListings(@RequestParam(required = false) Integer ownerId) {
+        return rentalListingService.getListings(ownerId);
     }
 
     @PostMapping("/rent")

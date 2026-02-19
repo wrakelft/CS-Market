@@ -42,6 +42,19 @@ public class MarketService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<SaleListingPreviewDto> getSaleListings(Integer ownerId) {
+        if (ownerId == null) {
+            return getActiveSaleListings();
+        }
+        if (ownerId <= 0) {
+            throw new BadRequestException("ownerId must be positive");
+        }
+        return saleListingRepository.findByInventoryItem_User_Id(ownerId).stream()
+                .map(SaleListingMapper::toPreviewDto)
+                .toList();
+    }
+
     @Transactional
     public SaleListingCreatedDto createSaleListing(CreateSaleListingRequestDto req) {
         InventoryItem item = inventoryItemRepository.findById(req.getInventoryItemId())

@@ -18,4 +18,6 @@ public interface SaleListingRepository extends JpaRepository<SaleListing, Intege
     @Query("select s.inventoryItem.id from SaleListing s where s.inventoryItem.id in :ids and s.status in :statuses")
     List<Integer> findBusyInventoryItemsIds(@Param("ids") List<Integer> inventoryItemIds,
                                             @Param("statuses") Collection<SaleListingStatus> statuses);
+
+    List<SaleListing> findByInventoryItem_User_Id(Integer userId);
 }

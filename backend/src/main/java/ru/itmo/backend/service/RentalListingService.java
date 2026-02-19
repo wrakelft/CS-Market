@@ -31,8 +31,17 @@ public class RentalListingService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<RentalListingDto> getAllListings() {
-        return rentalListingRepository.findAll().stream()
+    public List<RentalListingDto> getListings(Integer ownerId) {
+        if (ownerId == null) {
+            return rentalListingRepository.findAll().stream()
+                    .map(this::toDto)
+                    .toList();
+        }
+        if (ownerId <= 0) {
+            throw new BadRequestException("ownerId must be positive");
+        }
+
+        return rentalListingRepository.findByInventoryItem_User_Id(ownerId).stream()
                 .map(this::toDto)
                 .toList();
     }
