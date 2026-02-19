@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.backend.dto.rental.RentalListingDto;
+import ru.itmo.backend.exception.BadRequestException;
 import ru.itmo.backend.model.RentalListing;
 import ru.itmo.backend.repository.RentalListingRepository;
 
@@ -16,8 +17,17 @@ public class RentalListingService {
     private final RentalListingRepository rentalListingRepository;
 
     @Transactional(readOnly = true)
-    public List<RentalListingDto> getAllListings() {
-        return rentalListingRepository.findAll().stream()
+    public List<RentalListingDto> getListings(Integer ownerId) {
+        if (ownerId == null) {
+            return rentalListingRepository.findAll().stream()
+                    .map(this::toDto)
+                    .toList();
+        }
+        if (ownerId <= 0) {
+            throw new BadRequestException("ownerId must be positive");
+        }
+
+        return rentalListingRepository.findByInventoryItem_User_Id(ownerId).stream()
                 .map(this::toDto)
                 .toList();
     }

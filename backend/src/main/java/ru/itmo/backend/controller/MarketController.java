@@ -15,8 +15,8 @@ public class MarketController {
     private final MarketService marketService;
 
     @GetMapping("/sale-listings")
-    public List<SaleListingPreviewDto> listSale() {
-        return marketService.getActiveSaleListings();
+    public List<SaleListingPreviewDto> listSale(@RequestParam(required = false) Integer ownerId) {
+        return marketService.getSaleListings(ownerId);
     }
 
     @GetMapping("/skins")

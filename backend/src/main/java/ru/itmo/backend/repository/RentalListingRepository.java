@@ -18,6 +18,13 @@ public interface RentalListingRepository extends JpaRepository<RentalListing, In
     })
     List<RentalListing> findAll();
 
+    @EntityGraph(attributePaths = {
+            "inventoryItem",
+            "inventoryItem.skin",
+            "inventoryItem.user"
+    })
+    List<RentalListing> findByInventoryItem_User_Id(Integer userId);
+
     @Query("select r.inventoryItem.id from RentalListing r where r.inventoryItem.id in :ids")
     List<Integer> findBusyInventoryItemIds(@Param("ids") List<Integer> inventoryItemIds);
 }
