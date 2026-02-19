@@ -1,27 +1,24 @@
-import { useEffect, useState } from "react";
-import { api } from "./api/http";
+import { Route, Routes } from "react-router-dom";
+import AppLayout from "./layout/AppLayout";
+import Home from "./pages/Home";
+import StubPage from "./pages/StubPage";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
-    const [count, setCount] = useState<number | null>(null);
-
-    type SkinLite = {
-        id: number;
-        name: string;
-    };
-
-    useEffect(() => {
-        api<SkinLite[]>("/market/skins")
-            .then((data) => setCount(data.length))
-            .catch((e) => {
-                console.error(e);
-                setCount(-1);
-            });
-    }, []);
-
     return (
-        <div style={{ padding: 24 }}>
-            <h1>CS Market Front</h1>
-            <p>skins: {count === null ? "loading..." : count}</p>
-        </div>
+        <Routes>
+            <Route path="/" element={<AppLayout />}>
+                <Route index element={<Home />} />
+                <Route path="market" element={<StubPage title="Market" />} />
+                <Route path="cart" element={<StubPage title="Cart" />} />
+                <Route path="rent" element={<StubPage title="Rent" />} />
+                <Route path="payments" element={<StubPage title="Payments" />} />
+                <Route path="support" element={<StubPage title="Support" />} />
+                <Route path="admin" element={<StubPage title="Admin" />} />
+
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+            </Route>
+        </Routes>
     );
 }
