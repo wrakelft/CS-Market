@@ -18,6 +18,8 @@ public interface RentalListingRepository extends JpaRepository<RentalListing, In
     })
     List<RentalListing> findAll();
 
+    boolean existsByInventoryItemId(Integer inventoryItemId);
+
     @Query("select r.inventoryItem.id from RentalListing r where r.inventoryItem.id in :ids")
     List<Integer> findBusyInventoryItemIds(@Param("ids") List<Integer> inventoryItemIds);
 }
