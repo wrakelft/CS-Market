@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.auth" {
+  class SteamLoginRequestDto
+  class AuthUserDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class AuthController
+}
+
+package "service\nru.itmo.backend.service" {
+  class AuthService
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface UserRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class User
+}
+
+package "db" {
+  class DB <<database>>
+}
+
+AuthController ..> SteamLoginRequestDto : @RequestBody
+AuthController ..> AuthUserDto : returns
+
+AuthController ..> AuthService
+AuthService ..> UserRepository
+UserRepository ..> User
+UserRepository ..> DB
+
+@enduml

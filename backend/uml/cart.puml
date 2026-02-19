@@ -1,0 +1,90 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.cart" {
+  class AddToCartRequest
+  class CheckoutItemRequest
+  class CartDto
+  class CartItemDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class CartController
+}
+
+package "service\nru.itmo.backend.service" {
+  class CartService
+}
+
+package "mapper\nru.itmo.backend.mapper" {
+  class CartMapper <<static>>
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface CartRepository
+  interface CartItemRepository
+  interface UserRepository
+  interface SaleListingRepository
+}
+
+package "dao\nru.itmo.backend.dao" {
+  class PurchaseDao
+}
+
+package "model\nru.itmo.backend.model" {
+  class Cart
+  class CartItem
+  class User
+  class SaleListing
+  class InventoryItem
+}
+
+package "db" {
+  class DB <<database>>
+  class StoredProcedures <<procedure>> {
+    +execute_purchase(...)
+    +check_user_balance(...)
+  }
+}
+
+CartController ..> CartService
+CartController ..> AddToCartRequest : body
+CartController ..> CheckoutItemRequest : body
+CartController ..> CartDto : returns
+
+CartService ..> CartRepository
+CartService ..> CartItemRepository
+CartService ..> UserRepository
+CartService ..> SaleListingRepository
+CartService ..> PurchaseDao
+CartService ..> CartMapper : toDto()
+
+PurchaseDao ..> StoredProcedures : execute_purchase()
+PurchaseDao ..> StoredProcedures : check_user_balance()
+PurchaseDao ..> DB
+
+CartRepository ..> Cart
+CartItemRepository ..> CartItem
+UserRepository ..> User
+SaleListingRepository ..> SaleListing
+
+CartRepository ..> DB
+CartItemRepository ..> DB
+UserRepository ..> DB
+SaleListingRepository ..> DB
+
+Cart "1" -- "0..*" CartItem
+Cart "*" -- "1" User
+CartItem "*" -- "1" SaleListing
+SaleListing "*" -- "1" InventoryItem
+
+@enduml

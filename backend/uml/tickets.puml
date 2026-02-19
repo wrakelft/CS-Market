@@ -1,0 +1,63 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.ticket" {
+  class CreateTicketRequest
+  class TicketDto
+  class AttachmentDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class TicketController
+}
+
+package "service\nru.itmo.backend.service" {
+  class SupportService
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface TicketRepository
+  interface AttachmentRepository
+  interface UserRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class Ticket
+  class Attachment
+  class User
+}
+
+package "db" {
+  class DB <<database>>
+}
+
+TicketController ..> SupportService
+TicketController ..> CreateTicketRequest : body
+TicketController ..> TicketDto : returns
+TicketController ..> AttachmentDto : returns/List/body
+
+SupportService ..> TicketRepository
+SupportService ..> AttachmentRepository
+SupportService ..> UserRepository
+
+TicketRepository ..> Ticket
+AttachmentRepository ..> Attachment
+UserRepository ..> User
+
+TicketRepository ..> DB
+AttachmentRepository ..> DB
+UserRepository ..> DB
+
+Attachment "*" -- "1" Ticket
+Ticket "*" -- "1" User
+
+@enduml

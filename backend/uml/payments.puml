@@ -1,0 +1,46 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.payment" {
+  class CreatePaymentOperationRequest
+  class PaymentOperationDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class PaymentController
+}
+
+package "service\nru.itmo.backend.service" {
+  class PaymentService
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface PaymentOperationRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class PaymentOperation
+}
+
+package "db" {
+  class DB <<database>>
+}
+
+PaymentController ..> PaymentService
+PaymentController ..> CreatePaymentOperationRequest : body
+PaymentController ..> PaymentOperationDto : returns
+
+PaymentService ..> PaymentOperationRepository
+PaymentOperationRepository ..> PaymentOperation
+PaymentOperationRepository ..> DB
+
+@enduml

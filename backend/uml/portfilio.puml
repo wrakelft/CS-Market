@@ -1,0 +1,53 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.portfolio" {
+  class PricePointDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class PortfolioController
+}
+
+package "service\nru.itmo.backend.service" {
+  class PortfolioService
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface SkinPriceHistoryRepository
+  interface SkinRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class SkinPriceHistory
+  class Skin
+}
+
+package "db" {
+  class DB <<database>>
+}
+
+PortfolioController ..> PortfolioService
+PortfolioController ..> PricePointDto : returns List
+
+PortfolioService ..> SkinPriceHistoryRepository
+PortfolioService ..> SkinRepository
+
+SkinPriceHistoryRepository ..> SkinPriceHistory
+SkinRepository ..> Skin
+
+SkinPriceHistoryRepository ..> DB
+SkinRepository ..> DB
+
+SkinPriceHistory "*" -- "1" Skin
+
+@enduml

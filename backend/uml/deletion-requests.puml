@@ -1,0 +1,60 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.delete" {
+  class CreateDeletionRequestDto
+  class DeletionRequestDto
+  class RejectDeletionRequestDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class DeletionRequestController
+  class AdminDeletionRequestController
+}
+
+package "service\nru.itmo.backend.service" {
+  class DeletionRequestService
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface DeletionRequestRepository
+  interface UserRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class DeletionRequest
+  class User
+}
+
+package "db" {
+  class DB <<database>>
+}
+DeletionRequestController ..> DeletionRequestService
+AdminDeletionRequestController ..> DeletionRequestService
+
+DeletionRequestController ..> CreateDeletionRequestDto : body
+DeletionRequestController ..> DeletionRequestDto : returns/List
+AdminDeletionRequestController ..> RejectDeletionRequestDto : body
+AdminDeletionRequestController ..> DeletionRequestDto : returns/List
+
+DeletionRequestService ..> DeletionRequestRepository
+DeletionRequestService ..> UserRepository
+
+DeletionRequestRepository ..> DeletionRequest
+UserRepository ..> User
+
+DeletionRequestRepository ..> DB
+UserRepository ..> DB
+
+DeletionRequest "*" -- "1" User
+
+@enduml

@@ -1,0 +1,205 @@
+@startuml
+' ===== style (dark, как в примере) =====
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "controller\nru.itmo.backend.controller" {
+  class AuthController
+  class MarketController
+  class RentalController
+  class RentalListingController
+  class CartController
+  class PaymentController
+  class PortfolioController
+  class SupportController
+  class TicketController
+  class DeletionRequestController
+  class AdminController
+  class AdminDeletionRequestController
+
+  class TestPurchaseController
+  class TestRentalController
+  class TestBalanceController
+}
+
+package "service\nru.itmo.backend.service" {
+  class AuthService
+  class MarketService
+  class PurchaseService {
+    +executePurchase(buyerId, sellerId, inventoryItemId, price)
+  }
+  class RentalService {
+    +rentSkin(renterId, announcementId, days): RentResult
+  }
+  class RentalListingService
+  class CartService
+  class PaymentService
+  class PortfolioService
+  class SupportService
+  class DeletionRequestService
+  class AdminService {
+    +cleanupExpiredReservations(): int
+    +upsertInstantBuyPrice(skinId, userId, price): InstantBuyPriceDto
+  }
+}
+
+package "dao\nru.itmo.backend.dao" {
+  class PurchaseDao
+  class RentalDao
+  class BalanceDao
+  class CleanupDao
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface UserRepository
+  interface SkinRepository
+  interface InventoryItemRepository
+  interface SaleListingRepository
+  interface TransactionRepository
+  interface RentalListingRepository
+  interface RentalContractRepository
+  interface InstantBuyRepository
+  interface CartRepository
+  interface CartItemRepository
+  interface PaymentOperationRepository
+  interface SkinPriceHistoryRepository
+  interface AttachmentRepository
+  interface TicketRepository
+  interface ReviewRepository
+  interface DeletionRequestRepository
+}
+
+package "domain/model\nru.itmo.backend.model" {
+  class User
+  class Skin
+  class InventoryItem
+  class SaleListing
+  class Transaction
+  class RentalListing
+  class RentalContract
+  class InstantBuyPrice
+  class Cart
+  class CartItem
+  class PaymentOperation
+  class SkinPriceHistory
+  class Attachment
+  class Ticket
+  class Review
+  class DeletionRequest
+}
+
+package "db" {
+  class Database <<database>>
+  class StoredProcedures <<procedure>> {
+    +execute_purchase(...)
+    +rent_skin(...)
+    +check_user_balance(...)
+    +cleanup_expired_reservations()
+  }
+}
+
+' ===== layer dependencies: controller -> service =====
+AuthController ..> AuthService
+MarketController ..> MarketService
+RentalController ..> RentalService
+RentalListingController ..> RentalListingService
+CartController ..> CartService
+PaymentController ..> PaymentService
+PortfolioController ..> PortfolioService
+SupportController ..> SupportService
+TicketController ..> SupportService
+DeletionRequestController ..> DeletionRequestService
+AdminController ..> AdminService
+AdminDeletionRequestController ..> DeletionRequestService
+
+TestPurchaseController ..> PurchaseService
+TestRentalController ..> RentalService
+TestBalanceController ..> BalanceDao
+
+' ===== service -> dao/repository =====
+PurchaseService ..> PurchaseDao
+RentalService ..> RentalDao
+AdminService ..> CleanupDao
+
+AdminService ..> InstantBuyRepository
+AdminService ..> SkinRepository
+AdminService ..> UserRepository
+
+MarketService ..> SaleListingRepository
+MarketService ..> InventoryItemRepository
+MarketService ..> SkinRepository
+MarketService ..> TransactionRepository
+MarketService ..> ReviewRepository
+MarketService ..> InstantBuyRepository
+
+RentalListingService ..> RentalListingRepository
+RentalListingService ..> RentalContractRepository
+CartService ..> CartRepository
+CartService ..> CartItemRepository
+PaymentService ..> PaymentOperationRepository
+PortfolioService ..> SkinPriceHistoryRepository
+SupportService ..> TicketRepository
+SupportService ..> AttachmentRepository
+DeletionRequestService ..> DeletionRequestRepository
+
+' ===== dao/repo -> db =====
+PurchaseDao ..> Database
+RentalDao ..> Database
+BalanceDao ..> Database
+CleanupDao ..> Database
+
+UserRepository ..> Database
+SkinRepository ..> Database
+InventoryItemRepository ..> Database
+SaleListingRepository ..> Database
+TransactionRepository ..> Database
+RentalListingRepository ..> Database
+RentalContractRepository ..> Database
+InstantBuyRepository ..> Database
+CartRepository ..> Database
+CartItemRepository ..> Database
+PaymentOperationRepository ..> Database
+SkinPriceHistoryRepository ..> Database
+TicketRepository ..> Database
+AttachmentRepository ..> Database
+ReviewRepository ..> Database
+DeletionRequestRepository ..> Database
+
+' ===== explicit procedure/function calls (требование) =====
+PurchaseDao ..> StoredProcedures : execute_purchase()
+RentalDao ..> StoredProcedures : rent_skin()
+BalanceDao ..> StoredProcedures : check_user_balance()
+CleanupDao ..> StoredProcedures : cleanup_expired_reservations()
+
+' ===== main domain relationships (чтобы не было пусто) =====
+User "1" -- "0..*" InventoryItem
+Skin "1" -- "0..*" InventoryItem
+
+User "1" -- "0..*" SaleListing : seller
+InventoryItem "1" -- "0..*" SaleListing
+
+SaleListing "1" -- "0..*" Transaction
+Transaction "*" -- "1" User : buyer
+Transaction "*" -- "1" User : seller
+
+RentalListing "1" -- "0..*" RentalContract
+RentalContract "*" -- "1" User : renter
+
+Cart "1" -- "0..*" CartItem
+CartItem "*" -- "1" InventoryItem
+
+InstantBuyPrice "*" -- "1" Skin
+InstantBuyPrice "*" -- "1" User : updatedBy
+
+Ticket "*" -- "1" User
+Attachment "*" -- "1" Ticket
+
+@enduml

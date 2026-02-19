@@ -1,0 +1,50 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.rental" {
+  class RentRequestDto
+  class RentResponseDto
+  class RentResult
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class RentalController
+}
+
+package "service\nru.itmo.backend.service" {
+  class RentalService
+}
+
+package "dao\nru.itmo.backend.dao" {
+  class RentalDao
+}
+
+package "db" {
+  class DB <<database>>
+  class StoredProcedures <<procedure>> {
+    +rent_skin(...)
+    +check_user_balance(...)
+  }
+}
+
+RentalController ..> RentalService
+RentalController ..> RentRequestDto : body
+RentalController ..> RentResponseDto : returns
+RentalService ..> RentalDao
+RentalDao ..> StoredProcedures : rent_skin()
+RentalDao ..> StoredProcedures : check_user_balance()
+RentalDao ..> DB
+
+RentalService ..> RentResult
+RentResponseDto ..> RentResult : built from
+
+@enduml

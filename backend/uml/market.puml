@@ -1,0 +1,74 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto.market" {
+  class CreateSaleListingRequestDto
+  class SaleListingCreatedDto
+  class SaleListingPreviewDto
+  class SkinPreviewDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class MarketController
+}
+
+package "service\nru.itmo.backend.service" {
+  class MarketService
+}
+
+package "mapper\nru.itmo.backend.mapper" {
+  class SaleListingMapper <<static>>
+  class SkinMapper <<static>>
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface SaleListingRepository
+  interface InventoryItemRepository
+  interface SkinRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class SaleListing
+  class InventoryItem
+  class Skin
+}
+
+package "db" {
+  class DB <<database>>
+}
+
+MarketController ..> MarketService
+
+MarketController ..> CreateSaleListingRequestDto : POST body
+MarketController ..> SaleListingCreatedDto : returns
+MarketController ..> SaleListingPreviewDto : GET returns List
+MarketController ..> SkinPreviewDto : GET returns List
+
+MarketService ..> SaleListingRepository
+MarketService ..> InventoryItemRepository
+MarketService ..> SkinRepository
+
+MarketService ..> SaleListingMapper : toPreviewDto()
+MarketService ..> SkinMapper : toPreviewDto()
+
+SaleListingRepository ..> SaleListing
+InventoryItemRepository ..> InventoryItem
+SkinRepository ..> Skin
+
+SaleListingRepository ..> DB
+InventoryItemRepository ..> DB
+SkinRepository ..> DB
+
+SaleListing "*" -- "1" InventoryItem
+InventoryItem "*" -- "1" Skin
+
+@enduml

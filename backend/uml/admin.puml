@@ -1,0 +1,76 @@
+@startuml
+skinparam backgroundColor #0b0f14
+skinparam defaultFontColor #d8dee9
+skinparam ArrowColor #c0c0c0
+skinparam packageBorderColor #5e81ac
+skinparam classBorderColor #81a1c1
+skinparam classBackgroundColor #111827
+skinparam packageBackgroundColor #0f172a
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+package "dto\nru.itmo.backend.dto" {
+  class CleanupResponseDto
+  class InstantBuyPriceUpsertRequestDto
+}
+package "dto\nru.itmo.backend.dto.instant" {
+  class InstantBuyPriceDto
+}
+
+package "controller\nru.itmo.backend.controller" {
+  class AdminController
+}
+
+package "service\nru.itmo.backend.service" {
+  class AdminService
+}
+
+package "dao\nru.itmo.backend.dao" {
+  class CleanupDao
+}
+
+package "repository\nru.itmo.backend.repository" {
+  interface InstantBuyRepository
+  interface SkinRepository
+  interface UserRepository
+}
+
+package "model\nru.itmo.backend.model" {
+  class InstantBuyPrice
+  class Skin
+  class User
+}
+
+package "db" {
+  class DB <<database>>
+  class StoredProcedures <<procedure>> {
+    +cleanup_expired_reservations()
+  }
+}
+
+AdminController ..> AdminService
+AdminController ..> CleanupResponseDto : returns
+AdminController ..> InstantBuyPriceUpsertRequestDto : body
+AdminController ..> InstantBuyPriceDto : returns
+
+AdminService ..> CleanupDao
+AdminService ..> InstantBuyRepository
+AdminService ..> SkinRepository
+AdminService ..> UserRepository
+
+CleanupDao ..> StoredProcedures : cleanup_expired_reservations()
+CleanupDao ..> DB
+
+InstantBuyRepository ..> InstantBuyPrice
+SkinRepository ..> Skin
+UserRepository ..> User
+
+InstantBuyRepository ..> DB
+SkinRepository ..> DB
+UserRepository ..> DB
+
+InstantBuyPrice "*" -- "1" Skin
+InstantBuyPrice "*" -- "1" User : updatedBy
+
+@enduml
