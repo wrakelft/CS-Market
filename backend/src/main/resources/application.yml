@@ -17,3 +17,9 @@ logging:
   level:
     ru.itmo.backend.dao: INFO
 
+app:
+  cors:
+    allowed-origins: http://localhost:5173
+    allow-credentials: false
+
+
