@@ -126,6 +126,9 @@ export default function AppLayout() {
                         <NavLink to="/admin" style={linkStyle}>
                             Admin
                         </NavLink>
+                        <NavLink to="/deletion-requests" style={linkStyle}>
+                            Delete account
+                        </NavLink>
                     </nav>
                 </aside>
 

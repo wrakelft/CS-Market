@@ -26,4 +26,10 @@ public class DeletionRequestController {
     public List<DeletionRequestDto> getUser(@RequestParam Integer userId) {
         return deletionRequestService.getUserRequests(userId);
     }
+
+    @PatchMapping("/{requestId}/cancel")
+    public DeletionRequestDto cancel(@PathVariable Integer requestId,
+                                     @RequestHeader(value="Authorization", required=false) String authHeader) {
+        return deletionRequestService.cancelRequest(requestId, authHeader);
+    }
 }
