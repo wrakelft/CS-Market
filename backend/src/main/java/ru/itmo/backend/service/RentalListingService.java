@@ -25,7 +25,6 @@ public class RentalListingService {
 
     private final RentalListingRepository rentalListingRepository;
 
-    // для проверок
     private final InventoryItemRepository inventoryItemRepository;
     private final SaleListingRepository saleListingRepository;
     private final UserRepository userRepository;
@@ -48,7 +47,6 @@ public class RentalListingService {
 
     @Transactional
     public RentalListingDto createListing(CreateRentalListingRequestDto req) {
-        // базовая валидация (на всякий, даже если @Valid стоит в контроллере)
         if (req.getOwnerId() == null || req.getOwnerId() <= 0) {
             throw new BadRequestException("ownerId must be positive");
         }
@@ -62,26 +60,21 @@ public class RentalListingService {
             throw new BadRequestException("maxDays must be positive");
         }
 
-        // пользователь существует?
         if (!userRepository.existsById(req.getOwnerId())) {
             throw new NotFoundException("User not found");
         }
 
-        // inventory item существует?
         InventoryItem item = inventoryItemRepository.findById(req.getInventoryItemId())
                 .orElseThrow(() -> new NotFoundException("Inventory item not found"));
 
-        // принадлежит пользователю?
         if (item.getUser() == null || !req.getOwnerId().equals(item.getUser().getId())) {
             throw new BadRequestException("Inventory item does not belong to user");
         }
 
-        // предмет должен быть OWNED
         if (item.getOwnershipFlag() != OwnershipFlag.OWNED) {
             throw new BadRequestException("Inventory item is not owned");
         }
 
-        // нельзя если уже в продаже (ACTIVE/RESERVED)
         boolean inSale =
                 saleListingRepository.findFirstByInventoryItemIdAndStatus(item.getId(), SaleListingStatus.ACTIVE).isPresent()
                         || saleListingRepository.findFirstByInventoryItemIdAndStatus(item.getId(), SaleListingStatus.RESERVED).isPresent();
@@ -90,12 +83,10 @@ public class RentalListingService {
             throw new BadRequestException("Inventory item is already in sale listing");
         }
 
-        // нельзя если уже выставлен в аренду
         if (rentalListingRepository.existsByInventoryItemId(item.getId())) {
             throw new BadRequestException("Inventory item is already in rental listing");
         }
 
-        // создаём listing
         RentalListing listing = RentalListing.builder()
                 .pricePerDay(req.getPricePerDay())
                 .maxDays(req.getMaxDays())

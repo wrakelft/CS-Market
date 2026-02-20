@@ -4,8 +4,8 @@ server:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/csmark
-    username: itmo_user
-    password: 1234
+    username: postgres
+    password: 1111
     driver-class-name: org.postgresql.Driver
 
   jpa:
