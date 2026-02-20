@@ -13,6 +13,7 @@ public class TicketDto {
     private String topic;
     private String description;
     private Integer userId;
+    private String status;
     private LocalDateTime createdAt;
     private LocalDateTime closedAt;
     private List<AttachmentDto> attachments;
