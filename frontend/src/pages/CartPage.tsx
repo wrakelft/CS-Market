@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { API_BASE_URL } from "../config";
+import { api } from "../api";
 import { useAuth } from "../auth/authContext";
-import { getToken } from "../auth/tokenStorage";
 
 type CartItem = {
     id: number;
@@ -24,31 +23,7 @@ type CartDto = {
     items: CartItem[];
 };
 
-async function requestJson<T>(
-    path: string,
-    init?: RequestInit
-): Promise<{ ok: true; data: T } | { ok: false; status: number; text: string }> {
-    const token = getToken();
-
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-        ...init,
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...(init?.headers || {}),
-        },
-    });
-
-    const text = await res.text().catch(() => "");
-    if (!res.ok) return { ok: false, status: res.status, text };
-
-    if (!text) return { ok: true, data: undefined as T };
-    const ct = res.headers.get("content-type") || "";
-    if (!ct.includes("application/json")) return { ok: true, data: text as unknown as T };
-    return { ok: true, data: JSON.parse(text) as T };
-}
-
-function emptyCart(userId: number): CartDto {
+function makeEmptyCart(userId: number): CartDto {
     return {
         id: 0,
         userId,
@@ -74,16 +49,19 @@ export default function CartPage() {
 
     const load = async () => {
         if (!userId) return;
+
         setLoading(true);
         try {
-            const r = await requestJson<CartDto>(`/cart/${userId}`, { method: "GET" });
-            if (r.ok) {
-                setCart(r.data);
-            } else if (r.status === 404) {
-                // нет активной корзины = просто пустая корзина
-                setCart(emptyCart(userId));
-            } else {
-                throw new Error(r.text || `HTTP ${r.status}`);
+            const data = await api.get<CartDto>(`/cart/${userId}`);
+            setCart(data);
+        } catch (e: unknown) {
+            // api уже покажет ошибку через ErrorBanner.
+            // Но если это 404 (корзины нет) — просто считаем пустой корзиной.
+            if (typeof e === "object" && e && "status" in e) {
+                const st = (e as { status?: number }).status;
+                if (st === 404) {
+                    setCart(makeEmptyCart(userId));
+                }
             }
         } finally {
             setLoading(false);
@@ -91,21 +69,17 @@ export default function CartPage() {
     };
 
     useEffect(() => {
-        void load(); // чтобы не было "Promise returned from load is ignored"
+        void load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     const removeItem = async (cartItemId: number) => {
         if (!userId) return;
+
         setBusyItemId(cartItemId);
         try {
-            const r = await requestJson<CartDto>(`/cart/${userId}/items/${cartItemId}`, {
-                method: "DELETE",
-            });
-
-            if (r.ok) setCart(r.data);
-            else if (r.status === 404) setCart(emptyCart(userId));
-            else throw new Error(r.text || `HTTP ${r.status}`);
+            const updated = await api.del<CartDto>(`/cart/${userId}/items/${cartItemId}`);
+            setCart(updated);
         } finally {
             setBusyItemId(null);
         }
@@ -113,14 +87,10 @@ export default function CartPage() {
 
     const checkoutItem = async (cartItemId: number) => {
         if (!userId) return;
+
         setBusyItemId(cartItemId);
         try {
-            const r = await requestJson<string>(`/cart/checkout-item`, {
-                method: "POST",
-                body: JSON.stringify({ userId, cartItemId }),
-            });
-
-            if (!r.ok) throw new Error(r.text || `HTTP ${r.status}`);
+            await api.post<string>(`/cart/checkout-item`, { userId, cartItemId });
             await load();
         } finally {
             setBusyItemId(null);
@@ -133,22 +103,11 @@ export default function CartPage() {
 
     return (
         <div style={{ display: "grid", gap: 14 }}>
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    gap: 12,
-                    alignItems: "start",
-                }}
-            >
+            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "start" }}>
                 <div>
                     <h1 style={{ margin: 0 }}>Cart</h1>
                     <div style={{ opacity: 0.8, fontSize: 14 }}>
-                        {loading
-                            ? "Loading..."
-                            : cart
-                                ? `Items: ${cart.items.length} • Total: ${total}₽`
-                                : "No cart"}
+                        {loading ? "Loading..." : cart ? `Items: ${cart.items.length} • Total: ${total}₽` : "No cart"}
                     </div>
                 </div>
 
@@ -169,9 +128,7 @@ export default function CartPage() {
                 </button>
             </div>
 
-            {!loading && cart && cart.items.length === 0 && (
-                <div style={{ opacity: 0.8 }}>Корзина пустая</div>
-            )}
+            {!loading && cart && cart.items.length === 0 && <div style={{ opacity: 0.8 }}>Корзина пустая</div>}
 
             <div style={{ display: "grid", gap: 10 }}>
                 {cart?.items?.map((x) => (
