@@ -18,6 +18,9 @@ type SaleListing = {
 
 const PAGE_SIZE = 24;
 
+// временно для теста; потом берите из профиля/стора
+const USER_ID = 1;
+
 function debounceTimeout<T>(cb: (v: T) => void, delay = 300) {
     let t: number | undefined;
     return (v: T) => {
@@ -38,7 +41,12 @@ export default function MarketSale() {
     const [visible, setVisible] = useState(PAGE_SIZE);
     const [loading, setLoading] = useState(false);
 
-    // При изменении поиска — обновляем q и сбрасываем "load more"
+    // чтобы дизейблить кнопку только у конкретной карточки
+    const [addingId, setAddingId] = useState<number | null>(null);
+
+    // чтобы показать "Добавлено" после успеха
+    const [added, setAdded] = useState<Set<number>>(() => new Set());
+
     const debQ = useRef(
         debounceTimeout<string>((v) => {
             setQ(v);
@@ -83,6 +91,23 @@ export default function MarketSale() {
         });
         return Array.from(set).sort();
     }, [all]);
+
+    async function addToCart(listingId: number) {
+        if (addingId !== null) return;
+        setAddingId(listingId);
+
+        try {
+            await api.post("/cart/item", { userId: USER_ID, saleListingId: listingId });
+
+            setAdded((prev) => {
+                const next = new Set(prev);
+                next.add(listingId);
+                return next;
+            });
+        } finally {
+            setAddingId(null);
+        }
+    }
 
     return (
         <div style={{ display: "grid", gap: 14 }}>
@@ -231,52 +256,77 @@ export default function MarketSale() {
                     gap: 12,
                 }}
             >
-                {shown.map((x) => (
-                    <div
-                        key={x.id}
-                        style={{
-                            border: "1px solid rgba(255,255,255,0.10)",
-                            background: "rgba(255,255,255,0.04)",
-                            borderRadius: 14,
-                            padding: 12,
-                            display: "grid",
-                            gap: 8,
-                        }}
-                    >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                            <div style={{ fontWeight: 700, lineHeight: "20px" }}>{x.skinName}</div>
-                            <div style={{ fontWeight: 800, fontSize: 16 }}>{x.price}₽</div>
-                        </div>
+                {shown.map((x) => {
+                    const isAdding = addingId === x.id;
+                    const isAdded = added.has(x.id);
 
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <span
-                  style={{
-                      fontSize: 12,
-                      padding: "4px 8px",
-                      borderRadius: 999,
-                      border: "1px solid rgba(255,255,255,0.14)",
-                      background: "rgba(255,255,255,0.06)",
-                  }}
-              >
-                {x.rarity}
-              </span>
-                            <span
+                    return (
+                        <div
+                            key={x.id}
+                            style={{
+                                border: "1px solid rgba(255,255,255,0.10)",
+                                background: "rgba(255,255,255,0.04)",
+                                borderRadius: 14,
+                                padding: 12,
+                                display: "grid",
+                                gap: 8,
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                                <div style={{ fontWeight: 700, lineHeight: "20px" }}>{x.skinName}</div>
+                                <div style={{ fontWeight: 800, fontSize: 16 }}>{x.price}₽</div>
+                            </div>
+
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span
+                    style={{
+                        fontSize: 12,
+                        padding: "4px 8px",
+                        borderRadius: 999,
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        background: "rgba(255,255,255,0.06)",
+                    }}
+                >
+                  {x.rarity}
+                </span>
+                                <span
+                                    style={{
+                                        fontSize: 12,
+                                        padding: "4px 8px",
+                                        borderRadius: 999,
+                                        border: "1px solid rgba(255,255,255,0.14)",
+                                        background: "rgba(255,255,255,0.06)",
+                                    }}
+                                >
+                  {x.condition}
+                </span>
+                                <span style={{ opacity: 0.75, fontSize: 12 }}>status: {x.status}</span>
+                            </div>
+
+                            <div style={{ opacity: 0.8, fontSize: 13 }}>{x.collection}</div>
+
+                            {/* Action */}
+                            <button
+                                onClick={() => addToCart(x.id)}
+                                disabled={loading || isAdding || isAdded}
                                 style={{
-                                    fontSize: 12,
-                                    padding: "4px 8px",
-                                    borderRadius: 999,
-                                    border: "1px solid rgba(255,255,255,0.14)",
-                                    background: "rgba(255,255,255,0.06)",
+                                    marginTop: 6,
+                                    width: "100%",
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    background: isAdded ? "rgba(100, 200, 140, 0.12)" : "rgba(255,255,255,0.06)",
+                                    color: "inherit",
+                                    cursor: loading || isAdding || isAdded ? "not-allowed" : "pointer",
+                                    fontWeight: 700,
+                                    opacity: loading ? 0.7 : 1,
                                 }}
                             >
-                {x.condition}
-              </span>
-                            <span style={{ opacity: 0.75, fontSize: 12 }}>status: {x.status}</span>
+                                {isAdded ? "Добавлено" : isAdding ? "Добавляю..." : "В корзину"}
+                            </button>
                         </div>
-
-                        <div style={{ opacity: 0.8, fontSize: 13 }}>{x.collection}</div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {!loading && filtered.length === 0 && (
