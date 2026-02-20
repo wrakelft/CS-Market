@@ -31,16 +31,11 @@ public class RentalListingService {
 
     @Transactional(readOnly = true)
     public List<RentalListingDto> getListings(Integer ownerId) {
-        if (ownerId == null) {
-            return rentalListingRepository.findAll().stream()
-                    .map(this::toDto)
-                    .toList();
-        }
-        if (ownerId <= 0) {
+        if (ownerId != null && ownerId <= 0) {
             throw new BadRequestException("ownerId must be positive");
         }
 
-        return rentalListingRepository.findByInventoryItem_User_Id(ownerId).stream()
+        return rentalListingRepository.findAvailable(ownerId).stream()
                 .map(this::toDto)
                 .toList();
     }
@@ -109,4 +104,5 @@ public class RentalListingService {
                 .ownerId(rl.getInventoryItem().getUser().getId())
                 .build();
     }
+
 }

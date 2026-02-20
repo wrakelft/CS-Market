@@ -17,7 +17,6 @@ public class RentalService {
 
     @Transactional
     public RentResult rentSkin(Integer renterId, Integer announcementId, Integer days) {
-        // ✅ Валидация входных
         if (renterId == null || renterId <= 0) {
             throw new BadRequestException("renterId must be > 0");
         }
@@ -40,10 +39,22 @@ public class RentalService {
                 throw new InsufficientFundsException(result.getMessage());
             }
 
-            // все остальное — bad request (или можно Conflict)
             throw new BadRequestException(result.getMessage());
         }
 
         return result;
+    }
+
+    @Transactional
+    public int cleanupExpiredRentals() {
+        return rentalDao.cleanupExpiredRentals();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<ru.itmo.backend.dto.rental.RentalListingDto> getAvailableListings(Integer ownerId) {
+        if (ownerId != null && ownerId <= 0) {
+            throw new BadRequestException("ownerId must be positive");
+        }
+        return rentalDao.getAvailableRentalListings(ownerId);
     }
 }

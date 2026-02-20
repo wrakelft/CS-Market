@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Home";
-import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import RequireAuth from "./auth/RequireAuth";
@@ -18,6 +17,8 @@ import SupportPage from "./pages/SupportPage";
 import TicketPage from "./pages/TicketPage";
 import DeletionRequestsPage from "./pages/DeletionRequestPage";
 import AdminPage from "./pages/AdminPage";
+import MarketRent from "./pages/RentMarketPage.tsx";
+
 
 import InventorySellPage from "./pages/InventorySellPage";
 import MySalesPage from "./pages/MySalesPage";
@@ -61,7 +62,7 @@ export default function App() {
                         path="rent"
                         element={
                             <RequireAuth>
-                                <StubPage title="Rent" />
+                                <MarketRent />
                             </RequireAuth>
                         }
                     />
