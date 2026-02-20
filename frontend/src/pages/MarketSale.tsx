@@ -17,6 +17,11 @@ type SaleListing = {
     collection: string;
 };
 
+type PricePoint = {
+    price: number;
+    recordedAt: string;
+};
+
 const PAGE_SIZE = 24;
 
 function debounceTimeout<T>(cb: (v: T) => void, delay = 300) {
@@ -27,9 +32,64 @@ function debounceTimeout<T>(cb: (v: T) => void, delay = 300) {
     };
 }
 
+function PriceChart({ points, height = 70 }: { points: PricePoint[]; height?: number }) {
+    if (!points || points.length < 2) {
+        return <div style={{ opacity: 0.7, fontSize: 12 }}>Недостаточно данных для графика</div>;
+    }
+
+    const width = 320;
+    const pad = 6;
+
+    const prices = points.map((p) => p.price);
+    let min = Math.min(...prices);
+    let max = Math.max(...prices);
+    if (min === max) {
+        min = min - 1;
+        max = max + 1;
+    }
+
+    const toX = (i: number) => pad + (i * (width - pad * 2)) / (points.length - 1);
+    const toY = (price: number) => {
+        const t = (price - min) / (max - min);
+        return pad + (1 - t) * (height - pad * 2);
+    };
+
+    const d = points
+        .map((p, i) => `${i === 0 ? "M" : "L"} ${toX(i).toFixed(2)} ${toY(p.price).toFixed(2)}`)
+        .join(" ");
+
+    const last = points[points.length - 1]?.price ?? 0;
+    const first = points[0]?.price ?? 0;
+    const diff = last - first;
+    const pct = first ? Math.round((diff / first) * 100) : 0;
+
+    return (
+        <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, opacity: 0.85 }}>
+                <span>min: {Math.min(...prices)}₽</span>
+                <span>max: {Math.max(...prices)}₽</span>
+                <span>
+          Δ: {diff >= 0 ? "+" : ""}
+                    {diff}₽ ({pct >= 0 ? "+" : ""}
+                    {pct}%)
+        </span>
+            </div>
+
+            <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} style={{ display: "block" }}>
+                {/* линия */}
+                <path d={d} fill="none" stroke="currentColor" strokeWidth="2" opacity="0.9" />
+            </svg>
+        </div>
+    );
+}
+
 export default function MarketSale() {
     const { user } = useAuth();
     const userId = user?.id ?? 0;
+
+    const [openDetails, setOpenDetails] = useState<Set<number>>(() => new Set());
+    const [historyBySkin, setHistoryBySkin] = useState<Record<number, PricePoint[]>>({});
+    const [historyLoading, setHistoryLoading] = useState<Record<number, boolean>>({});
 
     const [rawQ, setRawQ] = useState("");
     const [q, setQ] = useState("");
@@ -42,10 +102,8 @@ export default function MarketSale() {
     const [visible, setVisible] = useState(PAGE_SIZE);
     const [loading, setLoading] = useState(false);
 
-    // чтобы дизейблить кнопку только у конкретной карточки
     const [addingId, setAddingId] = useState<number | null>(null);
 
-    // чтобы показать "Добавлено"
     const [added, setAdded] = useState<Set<number>>(() => new Set());
 
     const debQ = useRef(
@@ -92,8 +150,27 @@ export default function MarketSale() {
         return Array.from(set).sort();
     }, [all]);
 
+    async function toggleDetails(skinId: number) {
+        setOpenDetails((prev) => {
+            const next = new Set(prev);
+            if (next.has(skinId)) next.delete(skinId);
+            else next.add(skinId);
+            return next;
+        });
+
+        if (historyBySkin[skinId]) return;
+
+        setHistoryLoading((p) => ({ ...p, [skinId]: true }));
+        try {
+            const points = await api.get<PricePoint[]>(`/skins/${skinId}/price-history`);
+            setHistoryBySkin((p) => ({ ...p, [skinId]: points ?? [] }));
+        } finally {
+            setHistoryLoading((p) => ({ ...p, [skinId]: false }));
+        }
+    }
+
     async function addToCart(listingId: number) {
-        if (!userId) return; // не залогинен
+        if (!userId) return;
         if (addingId !== null) return;
 
         setAddingId(listingId);
@@ -107,11 +184,8 @@ export default function MarketSale() {
                 return next;
             });
 
-            // сразу уберём с маркета (на бэке он станет RESERVED и/или пропадёт из выдачи)
             setAll((prev) => prev.filter((x) => x.id !== listingId));
 
-            // если хочешь гарантированно синхронизироваться с бэком — раскомментируй:
-            // await load();
         } finally {
             setAddingId(null);
         }
@@ -268,6 +342,9 @@ export default function MarketSale() {
                 {shown.map((x) => {
                     const isAdding = addingId === x.id;
                     const isAdded = added.has(x.id);
+                    const detailsOpen = openDetails.has(x.skinId);
+                    const hLoading = !!historyLoading[x.skinId];
+                    const points = historyBySkin[x.skinId] ?? [];
 
                     return (
                         <div
@@ -317,6 +394,43 @@ export default function MarketSale() {
                             </div>
 
                             <div style={{ opacity: 0.8, fontSize: 13 }}>{x.collection}</div>
+
+                            <button
+                                onClick={() => void toggleDetails(x.skinId)}
+                                style={{
+                                    width: "100%",
+                                    borderRadius: 12,
+                                    padding: "10px 12px",
+                                    border: "1px solid rgba(255,255,255,0.15)",
+                                    background: "rgba(255,255,255,0.03)",
+                                    color: "inherit",
+                                    cursor: "pointer",
+                                    fontWeight: 700,
+                                }}
+                            >
+                                {detailsOpen ? "Hide details" : "Details"}
+                            </button>
+
+                            {detailsOpen && (
+                                <div
+                                    style={{
+                                        border: "1px solid rgba(255,255,255,0.10)",
+                                        borderRadius: 12,
+                                        padding: 10,
+                                        background: "rgba(255,255,255,0.02)",
+                                        display: "grid",
+                                        gap: 8,
+                                    }}
+                                >
+                                    <div style={{ opacity: 0.8, fontSize: 12 }}>Price history</div>
+
+                                    {hLoading ? (
+                                        <div style={{ opacity: 0.75, fontSize: 12 }}>Loading history…</div>
+                                    ) : (
+                                        <PriceChart points={points} />
+                                    )}
+                                </div>
+                            )}
 
                             {/* Action */}
                             <button
