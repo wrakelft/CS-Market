@@ -19,12 +19,4 @@ public class CreateRentalListingRequestDto {
 
     @NotNull @Min(1) @Max(365)
     private Integer maxDays;
-
-    // Если потом добавите поле в БД — просто раскомментите
-    // @Min(0)
-    // private Integer deposit;
-
-    // Если потом добавите minDays в БД — можно будет тоже
-    // @Min(1) @Max(365)
-    // private Integer minDays;
 }

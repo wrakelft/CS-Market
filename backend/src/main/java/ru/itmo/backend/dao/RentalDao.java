@@ -44,4 +44,47 @@ public class RentalDao {
                     .build();
         });
     }
+
+    public int cleanupExpiredRentals() {
+        Integer n = jdbcTemplate.queryForObject("SELECT cleanup_expired_rentals()", Integer.class);
+        return n == null ? 0 : n;
+    }
+
+    public java.util.List<ru.itmo.backend.dto.rental.RentalListingDto> getAvailableRentalListings(Integer ownerId) {
+        String sql = """
+        SELECT
+            rl.id        AS listing_id,
+            rl.price_per_day,
+            rl.max_days,
+            s.id         AS skin_id,
+            s.name       AS skin_name,
+            ii.user_id   AS owner_id
+        FROM rental_listings rl
+        JOIN inventory_items ii ON ii.id = rl.inventory_item_id
+        JOIN skins s ON s.id = ii.skin_id
+        WHERE (? IS NULL OR ii.user_id = ?)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM rental_contracts rc
+              WHERE rc.rental_listing_id = rl.id
+                AND rc.status = 'ACTIVE'
+                AND rc.end_at > NOW()
+          )
+        ORDER BY rl.id DESC
+        """;
+
+        return jdbcTemplate.query(sql, ps -> {
+            ps.setObject(1, ownerId);
+            ps.setObject(2, ownerId);
+        }, (rs, rowNum) -> ru.itmo.backend.dto.rental.RentalListingDto.builder()
+                .listingId(rs.getInt("listing_id"))
+                .pricePerDay(rs.getInt("price_per_day"))
+                .maxDays(rs.getInt("max_days"))
+                .skinId(rs.getInt("skin_id"))
+                .skinName(rs.getString("skin_name"))
+                .ownerId(rs.getInt("owner_id"))
+                .build());
+    }
+
+
 }

@@ -19,7 +19,7 @@ type SaleListing = {
 
 type PricePoint = {
     price: number;
-    recordedAt: string;
+    time: string;
 };
 
 const PAGE_SIZE = 24;

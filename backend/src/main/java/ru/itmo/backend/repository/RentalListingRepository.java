@@ -28,4 +28,18 @@ public interface RentalListingRepository extends JpaRepository<RentalListing, In
 
     @Query("select r.inventoryItem.id from RentalListing r where r.inventoryItem.id in :ids")
     List<Integer> findBusyInventoryItemIds(@Param("ids") List<Integer> inventoryItemIds);
+
+    @Query("""
+        select rl
+        from RentalListing rl
+        where (:ownerId is null or rl.inventoryItem.user.id = :ownerId)
+          and not exists (
+              select 1
+              from RentalContract rc
+              where rc.rentalListing.id = rl.id
+                and rc.status = 'ACTIVE'
+                and rc.endAt > CURRENT_TIMESTAMP
+          )
+    """)
+    List<RentalListing> findAvailable(@Param("ownerId") Integer ownerId);
 }
