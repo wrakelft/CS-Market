@@ -1,4 +1,4 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/authContext";
 
 const linkStyle = ({ isActive }: { isActive: boolean }) => ({
@@ -26,9 +26,9 @@ export default function AppLayout() {
         <div
             style={{
                 minHeight: "100vh",
-                width: "100%",          // ✅ вместо 97.3vw
+                width: "100%",
                 maxWidth: "100%",
-                overflowX: "hidden",    // ✅ чтобы не появлялся горизонтальный скролл
+                overflowX: "hidden",
                 boxSizing: "border-box",
                 display: "grid",
                 gridTemplateRows: "64px 1fr",
@@ -46,8 +46,25 @@ export default function AppLayout() {
                     boxSizing: "border-box",
                 }}
             >
-                <div style={{ fontWeight: 700 }}>CS Market</div>
-                <div style={{ opacity: 0.8, fontSize: 14 }}>Stage 4 vibes 🚀</div>
+                <div style={{fontWeight: 700}}>CS Market</div>
+                <div style={{display: "flex", alignItems: "center", gap: 10}}>
+                    <div style={{opacity: 0.8, fontSize: 14}}>Stage 4 vibes 🚀</div>
+
+                    {user ? (
+                        <>
+      <span style={{opacity: 0.85, fontSize: 14}}>
+        {user.nickname}
+      </span>
+                            <button onClick={logout} style={btnSmall}>
+                                Logout
+                            </button>
+                        </>
+                    ) : (
+                        <NavLink to="/login" style={btnSmall}>
+                            Login
+                        </NavLink>
+                    )}
+                </div>
             </header>
 
             {/* Body */}
