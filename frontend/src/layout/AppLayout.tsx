@@ -91,6 +91,12 @@ export default function AppLayout() {
                         <NavLink to="/market" style={linkStyle}>
                             Market
                         </NavLink>
+                        <NavLink to="/inventory" style={linkStyle}>
+                            Inventory
+                        </NavLink>
+                        <NavLink to="/my-sales" style={linkStyle}>
+                            My sales
+                        </NavLink>
                         <NavLink to="/cart" style={linkStyle}>
                             Cart
                         </NavLink>

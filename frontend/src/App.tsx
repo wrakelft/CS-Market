@@ -12,7 +12,10 @@ import { setApiErrorHandler } from "./api";
 import type { ApiError } from "./api";
 
 import MarketSale from "./pages/MarketSale";
-import CartPage from "./pages/CartPage";
+import CartPage from "./pages/CartPage.tsx";
+
+import InventorySellPage from "./pages/InventorySellPage";
+import MySalesPage from "./pages/MySalesPage";
 
 export default function App() {
     const [error, setError] = useState<ApiError | null>(null);
@@ -63,6 +66,24 @@ export default function App() {
                         element={
                             <RequireAuth>
                                 <StubPage title="Payments" />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="inventory"
+                        element={
+                            <RequireAuth>
+                                <InventorySellPage />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="my-sales"
+                        element={
+                            <RequireAuth>
+                                <MySalesPage />
                             </RequireAuth>
                         }
                     />
