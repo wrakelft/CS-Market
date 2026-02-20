@@ -37,12 +37,17 @@ export default function InventorySellPage() {
     const [creatingId, setCreatingId] = useState<number | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    const [totalValue, setTotalValue] = useState<number | null>(null);
+    const [missingPrices, setMissingPrices] = useState<number>(0);
+
     const load = async () => {
         if (!userId) return;
         setLoading(true);
         try {
             const data = await api.get<InventoryItem[]>(`/users/${userId}/inventory`);
-            setItems(data ?? []);
+            const arr = data ?? [];
+            setItems(arr);
+            void recalcTotal(arr);
         } finally {
             setLoading(false);
         }
@@ -61,6 +66,43 @@ export default function InventorySellPage() {
         const i = Math.floor(n);
         return i > 0 ? i : null;
     };
+
+    async function recalcTotal(itemsNow: InventoryItem[]) {
+        if (!itemsNow.length) {
+            setTotalValue(0);
+            setMissingPrices(0);
+            return;
+        }
+
+        // unique skinIds
+        const skinIds = Array.from(new Set(itemsNow.map((x) => x.skinId)));
+
+        let missing = 0;
+        const priceBySkin: Record<number, number> = {};
+
+        await Promise.all(
+            skinIds.map(async (sid) => {
+                try {
+                    // если бэк возвращает {price}, оставь так:
+                    const resp = await api.get<{ price: number }>(`/market/skins/${sid}/instant-price`);
+                    const p = resp?.price;
+                    if (p && p > 0) priceBySkin[sid] = p;
+                    else missing++;
+                } catch {
+                    missing++;
+                }
+            })
+        );
+
+        let sum = 0;
+        for (const it of itemsNow) {
+            const p = priceBySkin[it.skinId];
+            if (p) sum += p;
+        }
+
+        setMissingPrices(missing);
+        setTotalValue(sum);
+    }
 
     async function createInstantListing(item: InventoryItem) {
         if (!userId || !item.tradable) return;
@@ -82,7 +124,11 @@ export default function InventorySellPage() {
 
             await api.post<void>(`/market/sale-listings/${created.id}/instant-sell?sellerId=${userId}`, {});
 
-            setItems((prev) => prev.filter((x) => x.id !== item.id));
+            setItems((prev) => {
+                const next = prev.filter((x) => x.id !== item.id);
+                void recalcTotal(next);
+                return next;
+            });
             setSuccess(`Instant sale OK! listingId=${created.id}, price=${price}₽`);
         } catch (e) {
             setSuccess("Не получилось instant-продать.");
@@ -107,8 +153,11 @@ export default function InventorySellPage() {
                 price,
             });
 
-            setItems((prev) => prev.filter((x) => x.id !== item.id));
-
+            setItems((prev) => {
+                const next = prev.filter((x) => x.id !== item.id);
+                void recalcTotal(next);
+                return next;
+            });
             setSuccess(`Выставлено! listingId=${created.id}, price=${created.price}₽`);
         } finally {
             setCreatingId(null);
@@ -124,11 +173,26 @@ export default function InventorySellPage() {
                     <h1 style={{margin: 0, lineHeight: 1.05}}>My inventory</h1>
                     <div style={{opacity: 0.8, fontSize: 14, marginTop: 6, lineHeight: 1.9}}>
                         {loading ? "Loading..." : `Items: ${items.length} · Tradable: ${tradableCount}`}
+                        {totalValue !== null && (
+                            <>
+                                {" "}
+                                · Total value: <span style={{fontWeight: 900}}>{totalValue}₽</span>
+                                {missingPrices > 0 && (
+                                    <span style={{opacity: 0.7}}> (no price for {missingPrices} skins)</span>
+                                )}
+                            </>
+                        )}
                     </div>
                     {success && (
-                        <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(120,255,120,0.25)", background: "rgba(120,255,120,0.10)" }}>
+                        <div style={{
+                            marginTop: 8,
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            border: "1px solid rgba(120,255,120,0.25)",
+                            background: "rgba(120,255,120,0.10)"
+                        }}>
                             {success} {" "}
-                            <Link to="/my-sales" style={{ color: "inherit", textDecoration: "underline" }}>
+                            <Link to="/my-sales" style={{color: "inherit", textDecoration: "underline"}}>
                                 → открыть “Мои продажи”
                             </Link>
                         </div>
