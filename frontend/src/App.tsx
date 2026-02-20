@@ -14,6 +14,8 @@ import type { ApiError } from "./api";
 import MarketSale from "./pages/MarketSale";
 import CartPage from "./pages/CartPage.tsx";
 import PaymentsPage from "./pages/PaymentPage";
+import SupportPage from "./pages/SupportPage";
+import TicketPage from "./pages/TicketPage";
 
 import InventorySellPage from "./pages/InventorySellPage";
 import MySalesPage from "./pages/MySalesPage";
@@ -93,7 +95,16 @@ export default function App() {
                         path="support"
                         element={
                             <RequireAuth>
-                                <StubPage title="Support" />
+                                <SupportPage />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="tickets/:id"
+                        element={
+                            <RequireAuth>
+                                <TicketPage />
                             </RequireAuth>
                         }
                     />
