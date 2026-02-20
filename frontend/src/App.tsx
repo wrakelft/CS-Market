@@ -16,6 +16,7 @@ import CartPage from "./pages/CartPage.tsx";
 import PaymentsPage from "./pages/PaymentPage";
 import SupportPage from "./pages/SupportPage";
 import TicketPage from "./pages/TicketPage";
+import DeletionRequestsPage from "./pages/DeletionRequestPage";
 
 import InventorySellPage from "./pages/InventorySellPage";
 import MySalesPage from "./pages/MySalesPage";
@@ -114,6 +115,14 @@ export default function App() {
                         element={
                             <RequireAuth>
                                 <StubPage title="Admin" />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route
+                        path="deletion-requests"
+                        element={
+                            <RequireAuth>
+                                <DeletionRequestsPage />
                             </RequireAuth>
                         }
                     />

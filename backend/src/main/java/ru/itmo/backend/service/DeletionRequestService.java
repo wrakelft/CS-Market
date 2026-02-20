@@ -7,6 +7,7 @@ import ru.itmo.backend.dto.delete.DeletionRequestDto;
 import ru.itmo.backend.dto.delete.RejectDeletionRequestDto;
 import ru.itmo.backend.exception.BadRequestException;
 import ru.itmo.backend.exception.NotFoundException;
+import ru.itmo.backend.exception.UnauthorizedException;
 import ru.itmo.backend.model.DeletionRequest;
 import ru.itmo.backend.model.User;
 import ru.itmo.backend.model.enums.DeletionRequestStatus;
@@ -22,6 +23,7 @@ public class DeletionRequestService {
 
     private final DeletionRequestRepository deletionRequestRepository;
     private final UserRepository userRepository;
+    private final AuthService authService;
 
     // 1) создать запрос на удаление
     @Transactional
@@ -83,12 +85,10 @@ public class DeletionRequestService {
         return toDto(deletionRequestRepository.save(req));
     }
 
-    // 5) reject (только смена статуса, reason принять можем, но хранить негде)
     @Transactional
     public DeletionRequestDto reject(Integer requestId, RejectDeletionRequestDto body) {
         if (requestId == null || requestId <= 0) throw new BadRequestException("requestId must be > 0");
 
-        // если хочешь строго требовать причину (даже если не храним) — оставь:
         if (body == null || body.getReason() == null || body.getReason().isBlank()) {
             throw new BadRequestException("reason is required");
         }
@@ -113,5 +113,29 @@ public class DeletionRequestService {
                 .createdAt(r.getCreatedAt())
                 // reason/decidedAt НЕ трогаем (их нет в Entity/БД)
                 .build();
+    }
+
+    @Transactional
+    public DeletionRequestDto cancelRequest(Integer requestId, String authHeader) {
+        if (requestId == null || requestId <= 0) {
+            throw new BadRequestException("requestId must be > 0");
+        }
+
+        User u = authService.requireUser(authHeader);
+
+        DeletionRequest r = deletionRequestRepository.findById(requestId)
+                .orElseThrow(() -> new NotFoundException("Deletion request not found: " + requestId));
+
+        if (r.getUser() == null || r.getUser().getId() == null || !r.getUser().getId().equals(u.getId())) {
+            throw new UnauthorizedException("Not your deletion request");
+        }
+
+        if (r.getStatus() != DeletionRequestStatus.PENDING) {
+            throw new BadRequestException("Only PENDING request can be cancelled");
+        }
+
+        r.setStatus(DeletionRequestStatus.CANCELLED);
+
+        return toDto(deletionRequestRepository.save(r));
     }
 }
