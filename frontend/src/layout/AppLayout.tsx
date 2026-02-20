@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../auth/authContext";
 
 const linkStyle = ({ isActive }: { isActive: boolean }) => ({
     display: "block",
@@ -9,7 +10,18 @@ const linkStyle = ({ isActive }: { isActive: boolean }) => ({
     background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
 });
 
+const btnSmall: React.CSSProperties = {
+    borderRadius: 10,
+    padding: "8px 10px",
+    border: "1px solid rgba(255,255,255,0.15)",
+    background: "rgba(255,255,255,0.06)",
+    color: "inherit",
+    cursor: "pointer",
+};
+
 export default function AppLayout() {
+    const { user, logout } = useAuth(); // ✅ hook внутри компонента
+
     return (
         <div
             style={{
