@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "./config";
+import { getToken } from "./auth/tokenStorage";
 
 export type ApiError = {
     status: number;
@@ -7,10 +8,13 @@ export type ApiError = {
 };
 
 let onError: ((err: ApiError) => void) | null = null;
-
-// чтобы UI мог подписаться и показывать баннер/тост
 export function setApiErrorHandler(handler: (err: ApiError) => void) {
     onError = handler;
+}
+
+let onUnauthorized: (() => void) | null = null;
+export function setApiUnauthorizedHandler(handler: (() => void) | null) {
+    onUnauthorized = handler;
 }
 
 // анти-спам в консоль: одинаковое сообщение не чаще чем раз в 5с
@@ -29,12 +33,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const url = `${API_BASE_URL}${path}`;
 
     try {
+        const token = getToken();
+        const headers = new Headers(init?.headers);
+
+        if (!headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
+
+        if (token && !headers.has("Authorization")) {
+            headers.set("Authorization", `Bearer ${token}`);
+        }
+
         const res = await fetch(url, {
             ...init,
-            headers: {
-                "Content-Type": "application/json",
-                ...(init?.headers || {}),
-            },
+            headers,
         });
 
         if (!res.ok) {
@@ -45,7 +57,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
                 const parsed = JSON.parse(raw);
                 if (parsed?.message) msg = String(parsed.message);
             } catch {
-                // не JSON оставляем как есть
+                // не JSON — оставляем как есть
             }
 
             const err: ApiError = {
@@ -54,7 +66,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
                 details: raw || undefined,
             };
 
-            if (res.status === 401) err.message = "Не авторизован (401)";
+            if (res.status === 401) {
+                err.message = "Не авторизован (401)";
+                onUnauthorized?.();
+            }
             if (res.status === 403) err.message = "Доступ запрещён (403)";
             if (res.status >= 500) err.message = "Ошибка сервера (5xx)";
 
@@ -67,13 +82,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
         const ct = res.headers.get("content-type") || "";
         if (!ct.includes("application/json")) {
-            // вдруг backend вернул текст/пусто
             return (await res.text()) as unknown as T;
         }
 
         return (await res.json()) as T;
     } catch (e) {
-        // network error / CORS / server down
         if (typeof e === "object" && e && "status" in e) throw e;
 
         const err: ApiError = {
@@ -81,6 +94,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
             message: "Нет связи с сервером",
             details: String(e),
         };
+
         onError?.(err);
         logOnce(`network:${path}`, err);
         throw err;
@@ -90,8 +104,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
     get: <T>(path: string) => request<T>(path, { method: "GET" }),
     post: <T>(path: string, body?: unknown) =>
-        request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+        request<T>(path, {
+            method: "POST",
+            body: body ? JSON.stringify(body) : undefined,
+        }),
     patch: <T>(path: string, body?: unknown) =>
-        request<T>(path, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
+        request<T>(path, {
+            method: "PATCH",
+            body: body ? JSON.stringify(body) : undefined,
+        }),
     del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

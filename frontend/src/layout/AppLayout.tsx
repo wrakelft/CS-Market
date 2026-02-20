@@ -20,7 +20,7 @@ const btnSmall: React.CSSProperties = {
 };
 
 export default function AppLayout() {
-    const { user, logout } = useAuth(); // ✅ hook внутри компонента
+    const { user, logout } = useAuth();
 
     return (
         <div
