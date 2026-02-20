@@ -58,7 +58,7 @@ public class AuthService {
         return AuthResponseDto.builder().token(token).user(toDto(user)).build();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponseDto login(LoginRequestDto req) {
         String steamId = req.getSteamId().trim();
 
