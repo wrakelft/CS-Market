@@ -19,6 +19,9 @@ type SaleListing = {
 
 const PAGE_SIZE = 24;
 
+// временно для теста; потом берите из профиля/стора
+const USER_ID = 1;
+
 function debounceTimeout<T>(cb: (v: T) => void, delay = 300) {
     let t: number | undefined;
     return (v: T) => {
@@ -308,9 +311,10 @@ export default function MarketSale() {
 
                             <div style={{ opacity: 0.8, fontSize: 13 }}>{x.collection}</div>
 
+                            {/* Action */}
                             <button
-                                onClick={() => void addToCart(x.id)}
-                                disabled={loading || isAdding || isAdded || !userId}
+                                onClick={() => addToCart(x.id)}
+                                disabled={loading || isAdding || isAdded}
                                 style={{
                                     marginTop: 6,
                                     width: "100%",
