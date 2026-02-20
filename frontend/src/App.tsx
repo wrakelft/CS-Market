@@ -4,6 +4,9 @@ import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Home";
 import StubPage from "./pages/StubPage";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import RequireAuth from "./auth/RequireAuth";
+
 
 import ErrorBanner from "./components/ErrorBanner";
 import { setApiErrorHandler } from "./api";
@@ -20,13 +23,26 @@ export default function App() {
         <>
             <Routes>
                 <Route path="/" element={<AppLayout />}>
+                    <Route path="login" element={<Login />} />
                     <Route index element={<Home />} />
-                    <Route path="market" element={<StubPage title="Market" />} />
-                    <Route path="cart" element={<StubPage title="Cart" />} />
-                    <Route path="rent" element={<StubPage title="Rent" />} />
-                    <Route path="payments" element={<StubPage title="Payments" />} />
-                    <Route path="support" element={<StubPage title="Support" />} />
-                    <Route path="admin" element={<StubPage title="Admin" />} />
+                    <Route path="market" element={
+                        <RequireAuth><StubPage title="Market" /></RequireAuth>
+                    } />
+                    <Route path="cart" element={
+                        <RequireAuth><StubPage title="Cart" /></RequireAuth>
+                    } />
+                    <Route path="rent" element={
+                        <RequireAuth><StubPage title="Rent" /></RequireAuth>
+                    } />
+                    <Route path="payments" element={
+                        <RequireAuth><StubPage title="Payments" /></RequireAuth>
+                    } />
+                    <Route path="support" element={
+                        <RequireAuth><StubPage title="Support" /></RequireAuth>
+                    } />
+                    <Route path="admin" element={
+                        <RequireAuth><StubPage title="Admin" /></RequireAuth>
+                    } />
                     <Route path="*" element={<NotFound />} />
                 </Route>
             </Routes>
