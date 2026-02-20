@@ -7,33 +7,43 @@ import { setApiUnauthorizedHandler } from "../api";
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUserState] = useState<User | null>(null);
+
+    // initializing = true только если на старте есть токен
     const [initializing, setInitializing] = useState<boolean>(() => !!getToken());
 
     useEffect(() => {
         setApiUnauthorizedHandler(() => {
             clearToken();
             setUserState(null);
-            setInitializing(false);
         });
 
         const token = getToken();
-        if (!token) {
-            setInitializing(false);
-            return;
-        }
 
-        authApi.me()
-            .then((u) => setUserState(u))
-            .catch(() => {
+        if (!token) return;
+
+        let alive = true;
+
+        (async () => {
+            try {
+                const u = await authApi.me();
+                if (alive) setUserState(u);
+            } catch {
                 clearToken();
-                setUserState(null);
-            })
-            .finally(() => setInitializing(false));
+                if (alive) setUserState(null);
+            } finally {
+                if (alive) setInitializing(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
     }, []);
 
     const login = (token: string, u: User) => {
         setToken(token);
         setUserState(u);
+        setInitializing(false);
     };
 
     const logout = () => {
@@ -42,6 +52,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setUserState(null);
     };
 
-    const value = useMemo(() => ({ user, initializing, login, logout }), [user, initializing]);
+    const value = useMemo(
+        () => ({ user, initializing, login, logout }),
+        [user, initializing]
+    );
+
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

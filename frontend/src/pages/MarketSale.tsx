@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api";
+import { useAuth } from "../auth/authContext";
 
 type SaleListing = {
     id: number;
@@ -30,6 +31,9 @@ function debounceTimeout<T>(cb: (v: T) => void, delay = 300) {
 }
 
 export default function MarketSale() {
+    const { user } = useAuth();
+    const userId = user?.id ?? 0;
+
     const [rawQ, setRawQ] = useState("");
     const [q, setQ] = useState("");
 
@@ -41,10 +45,7 @@ export default function MarketSale() {
     const [visible, setVisible] = useState(PAGE_SIZE);
     const [loading, setLoading] = useState(false);
 
-    // чтобы дизейблить кнопку только у конкретной карточки
     const [addingId, setAddingId] = useState<number | null>(null);
-
-    // чтобы показать "Добавлено" после успеха
     const [added, setAdded] = useState<Set<number>>(() => new Set());
 
     const debQ = useRef(
@@ -54,21 +55,24 @@ export default function MarketSale() {
         }, 300)
     );
 
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+    const loadListings = async () => {
         setLoading(true);
+        try {
+            const data = await api.get<SaleListing[]>("/market/sale-listings");
+            setAll(data ?? []);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        api
-            .get<SaleListing[]>("/market/sale-listings")
-            .then((data) => {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setAll(data ?? []);
-            })
-            .finally(() => {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setLoading(false);
-            });
+    useEffect(() => {
+        void loadListings();
     }, []);
+
+    // если сменился пользователь — сбросим "added", чтобы не было странностей в UI
+    useEffect(() => {
+        setAdded(new Set());
+    }, [userId]);
 
     const filtered = useMemo(() => {
         const qq = q.trim().toLowerCase();
@@ -93,17 +97,22 @@ export default function MarketSale() {
     }, [all]);
 
     async function addToCart(listingId: number) {
+        if (!userId) return; // не залогинен
         if (addingId !== null) return;
+
         setAddingId(listingId);
-
         try {
-            await api.post("/cart/item", { userId: USER_ID, saleListingId: listingId });
+            await api.post("/cart/item", { userId, saleListingId: listingId });
 
+            // ✅ 1) помечаем как добавленное
             setAdded((prev) => {
                 const next = new Set(prev);
                 next.add(listingId);
                 return next;
             });
+
+            // ✅ 2) убираем с витрины сразу (как ты и хочешь)
+            setAll((prev) => prev.filter((x) => x.id !== listingId));
         } finally {
             setAddingId(null);
         }
@@ -111,7 +120,6 @@ export default function MarketSale() {
 
     return (
         <div style={{ display: "grid", gap: 14 }}>
-            {/* Header */}
             <div
                 style={{
                     display: "grid",
@@ -151,7 +159,6 @@ export default function MarketSale() {
                 </button>
             </div>
 
-            {/* Filters */}
             <div
                 style={{
                     display: "grid",
@@ -247,7 +254,6 @@ export default function MarketSale() {
                 </select>
             </div>
 
-            {/* Cards */}
             <div
                 style={{
                     display: "grid",
@@ -317,12 +323,12 @@ export default function MarketSale() {
                                     border: "1px solid rgba(255,255,255,0.15)",
                                     background: isAdded ? "rgba(100, 200, 140, 0.12)" : "rgba(255,255,255,0.06)",
                                     color: "inherit",
-                                    cursor: loading || isAdding || isAdded ? "not-allowed" : "pointer",
+                                    cursor: loading || isAdding || isAdded || !userId ? "not-allowed" : "pointer",
                                     fontWeight: 700,
                                     opacity: loading ? 0.7 : 1,
                                 }}
                             >
-                                {isAdded ? "Добавлено" : isAdding ? "Добавляю..." : "В корзину"}
+                                {!userId ? "Login required" : isAdded ? "Добавлено" : isAdding ? "Добавляю..." : "В корзину"}
                             </button>
                         </div>
                     );
@@ -333,7 +339,6 @@ export default function MarketSale() {
                 <div style={{ opacity: 0.8, padding: "10px 0" }}>Nothing found</div>
             )}
 
-            {/* Load more */}
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 6 }}>
                 {hasMore && (
                     <button

@@ -7,11 +7,12 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import RequireAuth from "./auth/RequireAuth";
 
-
 import ErrorBanner from "./components/ErrorBanner";
 import { setApiErrorHandler } from "./api";
 import type { ApiError } from "./api";
+
 import MarketSale from "./pages/MarketSale";
+import CartPage from "./pages/CartPage";
 
 export default function App() {
     const [error, setError] = useState<ApiError | null>(null);
@@ -24,26 +25,66 @@ export default function App() {
         <>
             <Routes>
                 <Route path="/" element={<AppLayout />}>
-                    <Route path="login" element={<Login />} />
                     <Route index element={<Home />} />
-                    <Route path="market" element={
-                        <RequireAuth><StubPage title="Market" /></RequireAuth>
-                    } />
-                    <Route path="cart" element={
-                        <RequireAuth><StubPage title="Cart" /></RequireAuth>
-                    } />
-                    <Route path="rent" element={
-                        <RequireAuth><StubPage title="Rent" /></RequireAuth>
-                    } />
-                    <Route path="payments" element={
-                        <RequireAuth><StubPage title="Payments" /></RequireAuth>
-                    } />
-                    <Route path="support" element={
-                        <RequireAuth><StubPage title="Support" /></RequireAuth>
-                    } />
-                    <Route path="admin" element={
-                        <RequireAuth><StubPage title="Admin" /></RequireAuth>
-                    } />
+
+                    {/* public */}
+                    <Route path="login" element={<Login />} />
+
+                    {/* protected */}
+                    <Route
+                        path="market"
+                        element={
+                            <RequireAuth>
+                                <MarketSale />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="cart"
+                        element={
+                            <RequireAuth>
+                                <CartPage />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="rent"
+                        element={
+                            <RequireAuth>
+                                <StubPage title="Rent" />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="payments"
+                        element={
+                            <RequireAuth>
+                                <StubPage title="Payments" />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="support"
+                        element={
+                            <RequireAuth>
+                                <StubPage title="Support" />
+                            </RequireAuth>
+                        }
+                    />
+
+                    <Route
+                        path="admin"
+                        element={
+                            <RequireAuth>
+                                <StubPage title="Admin" />
+                            </RequireAuth>
+                        }
+                    />
+
                     <Route path="*" element={<NotFound />} />
                 </Route>
             </Routes>
