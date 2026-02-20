@@ -33,12 +33,23 @@ export default function MySalesPage() {
         }
     };
 
+    async function cancelListing(listingId: number) {
+        if (!userId) return;
+        setLoading(true);
+        try {
+            await api.post<void>(`/market/sale-listings/${listingId}/cancel?sellerId=${userId}`, {});
+            await load();
+        } finally {
+            setLoading(false);
+        }
+    }
+
     useEffect(() => {
         void load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
-    const active = useMemo(() => items.filter((x) => x.status !== "SOLD").length, [items]);
+    const active = useMemo(() => items.filter((x) => x.status === "ACTIVE").length, [items]);
 
     if (!user) return <div style={{ opacity: 0.85 }}>Нужно войти в аккаунт.</div>;
 
@@ -85,19 +96,41 @@ export default function MySalesPage() {
                             maxWidth: 860,
                         }}
                     >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-                            <div style={{ fontWeight: 800 }}>{x.skinName}</div>
-                            <div style={{ fontWeight: 900, fontSize: 16 }}>{x.price}₽</div>
+                        <div style={{display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center"}}>
+                            <div style={{fontWeight: 800}}>{x.skinName}</div>
+
+                            <div style={{display: "flex", gap: 10, alignItems: "center"}}>
+                                <div style={{fontWeight: 900, fontSize: 16}}>{x.price}₽</div>
+
+                                {x.status === "ACTIVE" && (
+                                    <button
+                                        onClick={() => void cancelListing(x.id)}
+                                        disabled={loading}
+                                        style={{
+                                            borderRadius: 10,
+                                            padding: "8px 10px",
+                                            border: "1px solid rgba(255,255,255,0.15)",
+                                            background: "rgba(255,80,80,0.12)",
+                                            color: "inherit",
+                                            cursor: loading ? "not-allowed" : "pointer",
+                                            fontWeight: 800,
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <div style={{display: "flex", gap: 8, flexWrap: "wrap"}}>
                             <span style={pill}>{x.rarity}</span>
                             <span style={pill}>{x.condition}</span>
                             {x.collection && <span style={pill}>{x.collection}</span>}
-                            <span style={{ opacity: 0.75, fontSize: 12 }}>status: {x.status}</span>
+                            <span style={{opacity: 0.75, fontSize: 12}}>status: {x.status}</span>
                         </div>
 
-                        <div style={{ opacity: 0.8, fontSize: 13 }}>
+                        <div style={{opacity: 0.8, fontSize: 13}}>
                             listingId: {x.id} • inventoryItemId: {x.inventoryItemId}
                         </div>
                     </div>

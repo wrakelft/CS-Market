@@ -5,7 +5,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.itmo.backend.dao.PurchaseDao;
 import ru.itmo.backend.dto.market.CreateSaleListingRequestDto;
 import ru.itmo.backend.dto.market.SaleListingCreatedDto;
 import ru.itmo.backend.dto.market.SaleListingPreviewDto;
@@ -21,6 +20,8 @@ import ru.itmo.backend.model.enums.SaleListingStatus;
 import ru.itmo.backend.repository.InventoryItemRepository;
 import ru.itmo.backend.repository.SaleListingRepository;
 import ru.itmo.backend.repository.SkinRepository;
+import ru.itmo.backend.dto.instant.InstantBuyPriceDto;
+import ru.itmo.backend.repository.InstantBuyRepository;
 
 import java.util.List;
 
@@ -33,6 +34,7 @@ public class MarketService {
     private final SkinRepository skinRepository;
     private final SaleListingRepository saleListingRepository;
     private final InventoryItemRepository inventoryItemRepository;
+    private final InstantBuyRepository instantBuyRepository;
 
     @Transactional(readOnly = true)
     public List<SaleListingPreviewDto> getActiveSaleListings() {
@@ -126,6 +128,49 @@ public class MarketService {
         saleListingRepository.save(listing);
     }
 
+    @Transactional(readOnly = true)
+    public InstantBuyPriceDto getInstantPriceDto(Integer skinId) {
+        if (skinId == null || skinId <= 0) {
+            throw new BadRequestException("skinId must be positive");
+        }
 
+        var p = instantBuyRepository.findTopBySkin_IdOrderByUpdatedAtDesc(skinId)
+                .orElseThrow(() -> new NotFoundException("Instant price not set for this skin"));
 
+        Integer price = p.getPrice();
+        if (price == null || price <= 0) {
+            throw new NotFoundException("Instant price not set for this skin");
+        }
+
+        return InstantBuyPriceDto.builder()
+                .id(p.getId())
+                .price(price)
+                .updatedAt(p.getUpdatedAt())
+                .skinId(p.getSkin() != null ? p.getSkin().getId() : null)
+                .userId(p.getUpdatedBy() != null ? p.getUpdatedBy().getId() : null)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Integer getInstantPrice(Integer skinId) {
+        return getInstantPriceDto(skinId).getPrice();
+    }
+
+    @Transactional
+    public void cancelSaleListing(Integer sellerId, Integer saleListingId) {
+        SaleListing listing = saleListingRepository.findById(saleListingId)
+                .orElseThrow(() -> new NotFoundException("Sale listing not found"));
+
+        if (listing.getStatus() != SaleListingStatus.ACTIVE) {
+            throw new BadRequestException("Sale listing is not active");
+        }
+
+        Integer realSellerId = listing.getInventoryItem().getUser().getId();
+        if (!realSellerId.equals(sellerId)) {
+            throw new BadRequestException("Sale listing does not belong to seller");
+        }
+
+        listing.setStatus(SaleListingStatus.CANCELLED);
+        saleListingRepository.save(listing);
+    }
 }

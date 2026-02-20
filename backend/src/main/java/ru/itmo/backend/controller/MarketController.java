@@ -7,6 +7,7 @@ import ru.itmo.backend.dto.market.*;
 import ru.itmo.backend.service.MarketService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,8 +33,18 @@ public class MarketController {
         return marketService.createSaleListing(req);
     }
 
+    @PostMapping("/sale-listings/{id}/cancel")
+    public void cancelSale(@PathVariable Integer id, @RequestParam Integer sellerId) {
+        marketService.cancelSaleListing(sellerId, id);
+    }
+
     @PostMapping("/sale-listings/{id}/instant-sell")
     public void instantSell(@PathVariable Integer id, @RequestParam Integer sellerId) {
         marketService.instantSell(sellerId, id);
+    }
+
+    @GetMapping("/skins/{skinId}/instant-price")
+    public Map<String, Integer> instantPrice(@PathVariable Integer skinId) {
+        return Map.of("price", marketService.getInstantPrice(skinId));
     }
 }

@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface InstantBuyRepository extends JpaRepository<InstantBuyPrice, Integer> {
     Optional<InstantBuyPrice> findBySkin_IdAndUpdatedBy_Id(Integer skinId, Integer userId);
+    Optional<InstantBuyPrice> findTopBySkin_IdOrderByUpdatedAtDesc(Integer skinId);
 }
