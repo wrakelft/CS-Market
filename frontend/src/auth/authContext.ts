@@ -6,6 +6,7 @@ export type AuthState = {
     initializing: boolean;
     login: (token: string, user: User) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthState | null>(null);
