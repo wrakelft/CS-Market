@@ -11,10 +11,12 @@ import ru.itmo.backend.exception.NotFoundException;
 import ru.itmo.backend.model.Attachment;
 import ru.itmo.backend.model.Ticket;
 import ru.itmo.backend.model.User;
+import ru.itmo.backend.model.enums.TicketStatus;
 import ru.itmo.backend.repository.AttachmentRepository;
 import ru.itmo.backend.repository.TicketRepository;
 import ru.itmo.backend.repository.UserRepository;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,10 +42,11 @@ public class SupportService {
         ticket.setTopic(req.getTopic().trim());
         ticket.setDescription(req.getDescription().trim());
         ticket.setUser(user);
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket.setStatus(TicketStatus.OPEN);
 
         Ticket saved = ticketRepository.save(ticket);
 
-        // attachments (опционально)
         List<AttachmentDto> outAttachments = new ArrayList<>();
         if (req.getAttachments() != null) {
             for (var a : req.getAttachments()) {
@@ -81,6 +84,7 @@ public class SupportService {
                 .topic(saved.getTopic())
                 .description(saved.getDescription())
                 .userId(user.getId())
+                .status(saved.getStatus().name())
                 .createdAt(saved.getCreatedAt())
                 .closedAt(saved.getClosedAt())
                 .attachments(outAttachments)
@@ -113,6 +117,7 @@ public class SupportService {
                     .topic(t.getTopic())
                     .description(t.getDescription())
                     .userId(userId)
+                    .status(t.getStatus() != null ? t.getStatus().name() : null)
                     .createdAt(t.getCreatedAt())
                     .closedAt(t.getClosedAt())
                     .attachments(attDtos)
@@ -196,7 +201,11 @@ public class SupportService {
                 .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
 
         Integer ownerId = t.getUser() != null ? t.getUser().getId() : null;
-        if (ownerId == null || !ownerId.equals(requester.getId())) {
+
+        boolean isOwner = ownerId != null && ownerId.equals(requester.getId());
+        boolean isAdmin = requester.getRole() != null && requester.getRole().name().equals("ADMIN");
+
+        if (!isOwner && !isAdmin) {
             throw new ru.itmo.backend.exception.UnauthorizedException("Not your ticket");
         }
 
@@ -213,9 +222,86 @@ public class SupportService {
                 .topic(t.getTopic())
                 .description(t.getDescription())
                 .userId(ownerId)
+                .status(t.getStatus() != null ? t.getStatus().name() : null)
                 .createdAt(t.getCreatedAt())
                 .closedAt(t.getClosedAt())
                 .attachments(attDtos)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public List<TicketDto> getAllTickets() {
+        List<Ticket> tickets = ticketRepository.findAllByOrderByCreatedAtDesc();
+
+        List<TicketDto> result = new ArrayList<>();
+        for (Ticket t : tickets) {
+            Integer ownerId = t.getUser() != null ? t.getUser().getId() : null;
+
+            List<AttachmentDto> attDtos = attachmentRepository.findAllByTicket_Id(t.getId()).stream()
+                    .map(a -> AttachmentDto.builder()
+                            .id(a.getId())
+                            .fileName(a.getFileName())
+                            .fileUrl(a.getFileUrl())
+                            .build())
+                    .toList();
+
+            result.add(TicketDto.builder()
+                    .id(t.getId())
+                    .topic(t.getTopic())
+                    .description(t.getDescription())
+                    .userId(ownerId)
+                    .status(t.getStatus() != null ? t.getStatus().name() : null)
+                    .createdAt(t.getCreatedAt())
+                    .closedAt(t.getClosedAt())
+                    .attachments(attDtos)
+                    .build());
+        }
+        return result;
+    }
+
+    @Transactional
+    public TicketDto setTicketStatus(Integer ticketId, String statusRaw) {
+        if (ticketId == null || ticketId <= 0) throw new BadRequestException("ticketId must be > 0");
+        if (statusRaw == null || statusRaw.isBlank()) throw new BadRequestException("status is required");
+
+        Ticket t = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
+
+        TicketStatus newStatus;
+        try {
+            newStatus = TicketStatus.valueOf(statusRaw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException("Unknown status: " + statusRaw);
+        }
+
+        t.setStatus(newStatus);
+        if (newStatus == TicketStatus.CLOSED) {
+            if (t.getClosedAt() == null) t.setClosedAt(LocalDateTime.now());
+        } else {
+            t.setClosedAt(null);
+        }
+
+        Ticket saved = ticketRepository.save(t);
+
+        List<AttachmentDto> attDtos = attachmentRepository.findAllByTicket_Id(saved.getId()).stream()
+                .map(a -> AttachmentDto.builder()
+                        .id(a.getId())
+                        .fileName(a.getFileName())
+                        .fileUrl(a.getFileUrl())
+                        .build())
+                .toList();
+
+        return TicketDto.builder()
+                .id(saved.getId())
+                .topic(saved.getTopic())
+                .description(saved.getDescription())
+                .userId(saved.getUser() != null ? saved.getUser().getId() : null)
+                .status(saved.getStatus() != null ? saved.getStatus().name() : null)
+                .createdAt(saved.getCreatedAt())
+                .closedAt(saved.getClosedAt())
+                .attachments(attDtos)
+                .build();
+    }
+
+
 }

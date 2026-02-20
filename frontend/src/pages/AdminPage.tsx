@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { useAuth } from "../auth/authContext";
+import { Link } from "react-router-dom";
 
-type Tab = "USERS" | "DELETIONS" | "INSTANT";
+type Tab = "USERS" | "DELETIONS" | "INSTANT" | "TICKETS";
 
 type AdminUser = {
     id: number;
@@ -26,6 +27,26 @@ type DeletionRequest = {
 type RejectBody = { reason: string };
 
 type InstantPriceReq = { skinId: number; price: number };
+
+// ---- TICKETS ----
+type TicketStatus = "OPEN" | "WAITING_INFO" | "CLOSED" | string;
+
+type Attachment = {
+    id: number;
+    fileName: string;
+    fileUrl: string;
+};
+
+type AdminTicket = {
+    id: number;
+    topic: string;
+    description: string;
+    userId: number;
+    status: TicketStatus;
+    createdAt?: string;
+    closedAt?: string;
+    attachments?: Attachment[];
+};
 
 const btn: React.CSSProperties = {
     borderRadius: 10,
@@ -68,6 +89,16 @@ function pillStatus(s: string): React.CSSProperties {
     if (v === "APPROVED") return { border: "1px solid rgba(120,255,120,0.35)", background: "rgba(120,255,120,0.10)" };
     if (v === "REJECTED") return { border: "1px solid rgba(255,120,120,0.35)", background: "rgba(255,120,120,0.10)" };
     if (v === "CANCELLED") return { border: "1px solid rgba(255,180,80,0.35)", background: "rgba(255,180,80,0.10)" };
+    if (v === "ADMIN") return { border: "1px solid rgba(160,160,255,0.35)", background: "rgba(160,160,255,0.10)" };
+    if (v === "USER") return { border: "1px solid rgba(255,255,255,0.18)", background: "rgba(255,255,255,0.06)" };
+    return { border: "1px solid rgba(255,255,255,0.18)", background: "rgba(255,255,255,0.06)" };
+}
+
+function pillTicketStatus(s: string): React.CSSProperties {
+    const v = String(s).toUpperCase();
+    if (v === "OPEN") return { border: "1px solid rgba(160,160,255,0.35)", background: "rgba(160,160,255,0.10)" };
+    if (v === "WAITING_INFO") return { border: "1px solid rgba(255,180,80,0.35)", background: "rgba(255,180,80,0.12)" };
+    if (v === "CLOSED") return { border: "1px solid rgba(120,255,120,0.35)", background: "rgba(120,255,120,0.10)" };
     return { border: "1px solid rgba(255,255,255,0.18)", background: "rgba(255,255,255,0.06)" };
 }
 
@@ -93,6 +124,11 @@ export default function AdminPage() {
     const [skinIdStr, setSkinIdStr] = useState("");
     const [priceStr, setPriceStr] = useState("");
     const [instantSaving, setInstantSaving] = useState(false);
+
+    // TICKETS
+    const [tickets, setTickets] = useState<AdminTicket[]>([]);
+    const [ticketsLoading, setTicketsLoading] = useState(false);
+    const [ticketActionId, setTicketActionId] = useState<number | null>(null);
 
     const parsePosInt = (v: string) => {
         const n = Number(v);
@@ -124,13 +160,23 @@ export default function AdminPage() {
         }
     };
 
+    const loadTickets = async () => {
+        setTicketsLoading(true);
+        try {
+            const data = await api.get<AdminTicket[]>("/admin/tickets");
+            setTickets(data ?? []);
+        } finally {
+            setTicketsLoading(false);
+        }
+    };
+
     useEffect(() => {
         setMsg(null);
         if (!isAdmin) return;
 
-        // грузим только то, что нужно на текущей вкладке
         if (tab === "USERS") void loadUsers();
         if (tab === "DELETIONS") void loadDeletions();
+        if (tab === "TICKETS") void loadTickets();
     }, [tab, isAdmin]);
 
     if (!user) return <div style={{ opacity: 0.85 }}>Нужно войти в аккаунт.</div>;
@@ -193,6 +239,18 @@ export default function AdminPage() {
         }
     }
 
+    async function setTicketStatus(ticketId: number, status: "OPEN" | "WAITING_INFO" | "CLOSED") {
+        setTicketActionId(ticketId);
+        setMsg(null);
+        try {
+            const updated = await api.patch<AdminTicket>(`/admin/tickets/${ticketId}/status?status=${status}`, {});
+            setTickets((prev) => prev.map((t) => (t.id === ticketId ? updated : t)));
+            setMsg(`Ticket #${ticketId} → ${status}`);
+        } finally {
+            setTicketActionId(null);
+        }
+    }
+
     return (
         <div style={{ display: "grid", gap: 14, maxWidth: 1100 }}>
             <div style={{ display: "flex", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
@@ -213,6 +271,7 @@ export default function AdminPage() {
                 >
                     Users / Roles
                 </button>
+
                 <button
                     onClick={() => setTab("DELETIONS")}
                     style={{
@@ -225,6 +284,20 @@ export default function AdminPage() {
                 >
                     Deletion requests
                 </button>
+
+                <button
+                    onClick={() => setTab("TICKETS")}
+                    style={{
+                        ...btn,
+                        borderRadius: 999,
+                        fontWeight: 900,
+                        background: tab === "TICKETS" ? "rgba(160,160,255,0.12)" : "rgba(255,255,255,0.04)",
+                        borderColor: tab === "TICKETS" ? "rgba(160,160,255,0.30)" : "rgba(255,255,255,0.12)",
+                    }}
+                >
+                    Tickets
+                </button>
+
                 <button
                     onClick={() => setTab("INSTANT")}
                     style={{
@@ -298,6 +371,7 @@ export default function AdminPage() {
                                         >
                                             Make USER
                                         </button>
+
                                         <button
                                             onClick={() => void setUserRole(u.id, "ADMIN")}
                                             disabled={busy || u.role === "ADMIN"}
@@ -410,6 +484,132 @@ export default function AdminPage() {
                                         </div>
                                     ) : (
                                         <div style={{ opacity: 0.75, fontSize: 13 }}>Решение уже принято — кнопок нет.</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* TICKETS */}
+            {tab === "TICKETS" && (
+                <div style={{ ...card, display: "grid", gap: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                        <div style={{ fontWeight: 900 }}>Tickets</div>
+                        <button onClick={() => void loadTickets()} disabled={ticketsLoading} style={btn}>
+                            {ticketsLoading ? "Loading..." : "Refresh"}
+                        </button>
+                    </div>
+
+                    {!ticketsLoading && tickets.length === 0 && <div style={{ opacity: 0.8 }}>Тикетов нет</div>}
+
+                    <div style={{ display: "grid", gap: 8 }}>
+                        {tickets.map((t) => {
+                            const busy = ticketActionId === t.id;
+                            const st = String(t.status).toUpperCase();
+                            const isClosed = st === "CLOSED";
+
+                            return (
+                                <div
+                                    key={t.id}
+                                    style={{
+                                        border: "1px solid rgba(255,255,255,0.10)",
+                                        background: "rgba(255,255,255,0.03)",
+                                        borderRadius: 12,
+                                        padding: 12,
+                                        display: "grid",
+                                        gap: 10,
+                                    }}
+                                >
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                                        <div style={{ fontWeight: 900 }}>
+                                            #{t.id} • {t.topic}{" "}
+                                            <span style={{ opacity: 0.65, fontSize: 12 }}>userId={t.userId}</span>
+                                        </div>
+                                        <span style={{ ...pillBase, ...pillTicketStatus(t.status) }}>{t.status}</span>
+                                    </div>
+
+                                    <div style={{ opacity: 0.85, fontSize: 13, lineHeight: 1.3 }}>
+                                        {t.description}
+                                    </div>
+
+                                    <div style={{ opacity: 0.75, fontSize: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                        {t.createdAt && <span>created: {t.createdAt}</span>}
+                                        {t.closedAt && <span>closed: {t.closedAt}</span>}
+                                        {Array.isArray(t.attachments) && <span>attachments: {t.attachments.length}</span>}
+                                    </div>
+
+                                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                                        <Link
+                                            to={`/tickets/${t.id}`}
+                                            style={{
+                                                ...btn,
+                                                height: 38,
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                textDecoration: "none",
+                                            }}
+                                        >
+                                            Open
+                                        </Link>
+
+                                        <button
+                                            onClick={() => void setTicketStatus(t.id, "WAITING_INFO")}
+                                            disabled={busy || isClosed}
+                                            style={{
+                                                ...btn,
+                                                height: 38,
+                                                border: "1px solid rgba(255,180,80,0.35)",
+                                                background: "rgba(255,180,80,0.10)",
+                                                fontWeight: 900,
+                                                opacity: busy || isClosed ? 0.6 : 1,
+                                                cursor: busy || isClosed ? "not-allowed" : "pointer",
+                                            }}
+                                            title={isClosed ? "Тикет закрыт" : "Запросить доп. сведения"}
+                                        >
+                                            Request info
+                                        </button>
+
+                                        <button
+                                            onClick={() => void setTicketStatus(t.id, "CLOSED")}
+                                            disabled={busy || isClosed}
+                                            style={{
+                                                ...btn,
+                                                height: 38,
+                                                border: "1px solid rgba(120,255,120,0.35)",
+                                                background: "rgba(120,255,120,0.10)",
+                                                fontWeight: 900,
+                                                opacity: busy || isClosed ? 0.6 : 1,
+                                                cursor: busy || isClosed ? "not-allowed" : "pointer",
+                                            }}
+                                            title={isClosed ? "Уже закрыт" : "Закрыть тикет"}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+
+                                    {Array.isArray(t.attachments) && t.attachments.length > 0 && (
+                                        <div style={{ display: "grid", gap: 6 }}>
+                                            <div style={{ fontWeight: 900, opacity: 0.85, fontSize: 12 }}>Attachments</div>
+                                            <div style={{ display: "grid", gap: 6 }}>
+                                                {t.attachments.slice(0, 5).map((a) => (
+                                                    <a
+                                                        key={a.id}
+                                                        href={a.fileUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        style={{ opacity: 0.85, fontSize: 13, color: "inherit" }}
+                                                    >
+                                                        {a.fileName}
+                                                    </a>
+                                                ))}
+                                                {t.attachments.length > 5 && (
+                                                    <div style={{ opacity: 0.65, fontSize: 12 }}>+{t.attachments.length - 5} more…</div>
+                                                )}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             );

@@ -3,6 +3,7 @@ package ru.itmo.backend.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import ru.itmo.backend.model.enums.TicketStatus;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +36,10 @@ public class Ticket {
 
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private TicketStatus status;
 
     @JsonIgnore
     @OneToMany(mappedBy = "ticket", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
