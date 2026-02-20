@@ -1,6 +1,8 @@
 package ru.itmo.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.itmo.backend.dao.PurchaseDao;
@@ -14,8 +16,10 @@ import ru.itmo.backend.model.SaleListing;
 import ru.itmo.backend.model.enums.CartItemStatus;
 import ru.itmo.backend.model.enums.CartStatus;
 import ru.itmo.backend.model.enums.SaleListingStatus;
-import ru.itmo.backend.repository.*;
-import org.springframework.dao.DataIntegrityViolationException;
+import ru.itmo.backend.repository.CartItemRepository;
+import ru.itmo.backend.repository.CartRepository;
+import ru.itmo.backend.repository.SaleListingRepository;
+import ru.itmo.backend.repository.UserRepository;
 
 import java.time.LocalDateTime;
 
@@ -34,6 +38,7 @@ public class CartService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
+        // кладём в корзину только если листинг ещё ACTIVE (триггер сам переведёт в RESERVED)
         var listing = saleListingRepository.findByIdAndStatus(saleListingId, SaleListingStatus.ACTIVE)
                 .orElseThrow(() -> new NotFoundException("Active sale listing not found"));
 
@@ -43,25 +48,27 @@ public class CartService {
                         .status(CartStatus.ACTIVE)
                         .createdAt(LocalDateTime.now())
                         .build()));
+
         cartItemRepository.findByCartIdAndSaleListingId(cart.getId(), saleListingId)
                 .ifPresent(x -> { throw new BadRequestException("Item already in cart"); });
+
         CartItem item = CartItem.builder()
                 .cart(cart)
                 .saleListing(listing)
                 .price(listing.getPrice())
-                .itemStatus(CartItemStatus.ACTIVE)
+                .itemStatus(CartItemStatus.ACTIVE) // триггер в БД всё равно поставит RESERVED
                 .build();
 
         try {
             cartItemRepository.save(item);
         } catch (DataIntegrityViolationException e) {
-            String msg = e.getMostSpecificCause().getMessage();
+            String msg = e.getMostSpecificCause() != null ? e.getMostSpecificCause().getMessage() : null;
             if (msg != null && msg.toLowerCase().contains("already reserved")) {
                 throw new BadRequestException("Sale listing is already reserved");
             }
-
             throw e;
         }
+
         var items = cartItemRepository.findByCartId(cart.getId());
         return CartMapper.toDto(cart, items);
     }
@@ -105,17 +112,32 @@ public class CartService {
             throw new BadRequestException("Cart item does not belong to this user");
         }
 
+        // покупаем только если активный/зарезервированный
         if (item.getItemStatus() != CartItemStatus.RESERVED && item.getItemStatus() != CartItemStatus.ACTIVE) {
             throw new BadRequestException("Cart item is not purchasable");
         }
 
+        // резерв не должен истечь
         if (item.getReservedUntil() != null && item.getReservedUntil().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Reservation expired");
         }
 
         SaleListing listing = item.getSaleListing();
 
-        if (listing.getStatus() != SaleListingStatus.ACTIVE) {
+        // листинг может быть RESERVED (мы прячем его с маркета)
+        if (listing.getStatus() == SaleListingStatus.SOLD || listing.getStatus() == SaleListingStatus.CANCELLED) {
+            throw new BadRequestException("Sale listing is not purchasable");
+        }
+
+        // если RESERVED — ок, но только если item RESERVED и резерв живой
+        if (listing.getStatus() == SaleListingStatus.RESERVED) {
+            if (item.getItemStatus() != CartItemStatus.RESERVED) {
+                throw new BadRequestException("Sale listing is reserved");
+            }
+            if (item.getReservedUntil() == null || item.getReservedUntil().isBefore(LocalDateTime.now())) {
+                throw new BadRequestException("Reservation expired");
+            }
+        } else if (listing.getStatus() != SaleListingStatus.ACTIVE) {
             throw new BadRequestException("Sale listing is not active");
         }
 
@@ -124,7 +146,26 @@ public class CartService {
             throw new BadRequestException("Buyer cannot be seller");
         }
 
-        purchaseDao.executePurchase(userId, sellerId, listing.getInventoryItem().getId(), listing.getPrice());
-    }
+        try {
+            // 1) покупка (если денег нет — тут упадёт исключение)
+            purchaseDao.executePurchase(userId, sellerId, listing.getInventoryItem().getId(), listing.getPrice());
 
+            // 2) покупка прошла — удаляем купленную позицию из корзины
+            cartItemRepository.deleteById(cartItemId);
+
+        } catch (DataAccessException e) {
+            String msg = e.getRootCause() != null ? e.getRootCause().getMessage() : e.getMessage();
+            String low = msg != null ? msg.toLowerCase() : "";
+
+            if (low.contains("insufficient") || low.contains("not enough") || low.contains("недостат")) {
+                throw new BadRequestException("Недостаточно средств");
+            }
+
+            if (low.contains("already reserved") || low.contains("reserved")) {
+                throw new BadRequestException("Sale listing is already reserved");
+            }
+
+            throw e;
+        }
+    }
 }
