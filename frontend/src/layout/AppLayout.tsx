@@ -23,7 +23,17 @@ export default function AppLayout() {
     const { user, logout } = useAuth(); // ✅ hook внутри компонента
 
     return (
-        <div style={{ minHeight: "100vh", display: "grid", gridTemplateRows: "64px 1fr" }}>
+        <div
+            style={{
+                minHeight: "100vh",
+                width: "100%",          // ✅ вместо 97.3vw
+                maxWidth: "100%",
+                overflowX: "hidden",    // ✅ чтобы не появлялся горизонтальный скролл
+                boxSizing: "border-box",
+                display: "grid",
+                gridTemplateRows: "64px 1fr",
+            }}
+        >
             {/* Header */}
             <header
                 style={{
@@ -32,37 +42,29 @@ export default function AppLayout() {
                     justifyContent: "space-between",
                     padding: "0 20px",
                     borderBottom: "1px solid rgba(255,255,255,0.08)",
+                    width: "100%",
+                    boxSizing: "border-box",
                 }}
             >
                 <div style={{ fontWeight: 700 }}>CS Market</div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {user ? (
-                        <>
-              <span style={{ opacity: 0.85, fontSize: 14 }}>
-                {user.nickname} · id {user.id}
-              </span>
-                            <button onClick={logout} style={btnSmall}>
-                                Logout
-                            </button>
-                        </>
-                    ) : (
-                        <Link to="/login" style={{ opacity: 0.9, textDecoration: "none", color: "inherit" }}>
-                            Login
-                        </Link>
-                    )}
-
-                    <div style={{ opacity: 0.7, fontSize: 14 }}>Stage 4 vibes 🚀</div>
-                </div>
+                <div style={{ opacity: 0.8, fontSize: 14 }}>Stage 4 vibes 🚀</div>
             </header>
 
             {/* Body */}
-            <div style={{ display: "grid", gridTemplateColumns: "240px 1fr" }}>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "240px minmax(0, 1fr)",
+                    width: "100%",
+                    boxSizing: "border-box",
+                }}
+            >
                 {/* Sidebar */}
                 <aside
                     style={{
                         padding: 12,
                         borderRight: "1px solid rgba(255,255,255,0.08)",
+                        boxSizing: "border-box",
                     }}
                 >
                     <nav style={{ display: "grid", gap: 6 }}>
@@ -91,7 +93,7 @@ export default function AppLayout() {
                 </aside>
 
                 {/* Page content */}
-                <main style={{ padding: 20 }}>
+                <main style={{ padding: 20, minWidth: 0, boxSizing: "border-box" }}>
                     <Outlet />
                 </main>
             </div>

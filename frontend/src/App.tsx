@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import ErrorBanner from "./components/ErrorBanner";
 import { setApiErrorHandler } from "./api";
 import type { ApiError } from "./api";
+import MarketSale from "./pages/MarketSale";
 
 export default function App() {
     const [error, setError] = useState<ApiError | null>(null);
@@ -21,7 +22,7 @@ export default function App() {
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<Home />} />
-                    <Route path="market" element={<StubPage title="Market" />} />
+                    <Route path="market" element={<MarketSale />} />
                     <Route path="cart" element={<StubPage title="Cart" />} />
                     <Route path="rent" element={<StubPage title="Rent" />} />
                     <Route path="payments" element={<StubPage title="Payments" />} />
