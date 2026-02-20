@@ -22,6 +22,9 @@ const btnSmall: React.CSSProperties = {
 export default function AppLayout() {
     const { user, logout } = useAuth();
 
+    const isAdmin = user?.role === "ADMIN";
+
+
     return (
         <div
             style={{
@@ -123,9 +126,11 @@ export default function AppLayout() {
                         <NavLink to="/support" style={linkStyle}>
                             Support
                         </NavLink>
+                        {isAdmin && (
                         <NavLink to="/admin" style={linkStyle}>
                             Admin
                         </NavLink>
+                        )}
                         <NavLink to="/deletion-requests" style={linkStyle}>
                             Delete account
                         </NavLink>

@@ -11,7 +11,7 @@ public class DeletionRequestDto {
     private Integer id;
     private Integer userId;
 
-    private String status;      // PENDING / APPROVED / REJECTED (или как у тебя в БД)
+    private String status;      // PENDING / APPROVED / REJECTED
     private String reason;      // причина, если rejected
     private LocalDateTime createdAt;
     private LocalDateTime decidedAt;

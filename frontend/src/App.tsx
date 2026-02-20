@@ -17,6 +17,7 @@ import PaymentsPage from "./pages/PaymentPage";
 import SupportPage from "./pages/SupportPage";
 import TicketPage from "./pages/TicketPage";
 import DeletionRequestsPage from "./pages/DeletionRequestPage";
+import AdminPage from "./pages/AdminPage";
 
 import InventorySellPage from "./pages/InventorySellPage";
 import MySalesPage from "./pages/MySalesPage";
@@ -114,7 +115,7 @@ export default function App() {
                         path="admin"
                         element={
                             <RequireAuth>
-                                <StubPage title="Admin" />
+                                <AdminPage />
                             </RequireAuth>
                         }
                     />
