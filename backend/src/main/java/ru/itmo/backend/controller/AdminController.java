@@ -4,9 +4,20 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.itmo.backend.dto.CleanupResponseDto;
-import ru.itmo.backend.dto.InstantBuyPriceUpsertRequestDto;
 import ru.itmo.backend.dto.instant.InstantBuyPriceDto;
+import ru.itmo.backend.dto.instant.InstantBuyPriceUpsertRequestDto;
+import ru.itmo.backend.dto.delete.DeletionRequestDto;
+import ru.itmo.backend.dto.delete.RejectDeletionRequestDto;
+import ru.itmo.backend.dto.instant.InstantBuyPriceUpsertRequestDto;
+import ru.itmo.backend.dto.user.AdminUserDto;
+import ru.itmo.backend.exception.UnauthorizedException;
+import ru.itmo.backend.model.User;
+import ru.itmo.backend.model.enums.UserRole;
 import ru.itmo.backend.service.AdminService;
+import ru.itmo.backend.service.AuthService;
+import ru.itmo.backend.service.DeletionRequestService;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -14,6 +25,48 @@ import ru.itmo.backend.service.AdminService;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AuthService authService;
+    private final DeletionRequestService deletionRequestService;
+
+    private void requireAdmin(String authHeader) {
+        User u = authService.requireUser(authHeader);
+        if (u.getRole() != UserRole.ADMIN) throw new UnauthorizedException("Admin only");
+    }
+
+    @GetMapping("/users")
+    public List<AdminUserDto> users(@RequestHeader(value="Authorization", required=false) String authHeader) {
+        adminService.requireAdmin(authHeader);
+        return adminService.getUsers();
+    }
+
+    @PatchMapping("/users/{userId}/role")
+    public AdminUserDto setRole(@PathVariable Integer userId,
+                                @RequestParam String role,
+                                @RequestHeader(value="Authorization", required=false) String authHeader) {
+        adminService.requireAdmin(authHeader);
+        return adminService.setUserRole(userId, role);
+    }
+
+    @GetMapping("/deletion-requests")
+    public List<DeletionRequestDto> all(@RequestHeader(value="Authorization", required=false) String authHeader) {
+        requireAdmin(authHeader);
+        return deletionRequestService.getAll();
+    }
+
+    @PatchMapping("/deletion-requests/{id}/approve")
+    public DeletionRequestDto approve(@PathVariable Integer id,
+                                      @RequestHeader(value="Authorization", required=false) String authHeader) {
+        requireAdmin(authHeader);
+        return deletionRequestService.approve(id);
+    }
+
+    @PatchMapping("/deletion-requests/{id}/reject")
+    public DeletionRequestDto reject(@PathVariable Integer id,
+                                     @RequestBody RejectDeletionRequestDto body,
+                                     @RequestHeader(value="Authorization", required=false) String authHeader) {
+        requireAdmin(authHeader);
+        return deletionRequestService.reject(id, body);
+    }
 
     @PostMapping("/cleanup-reservations")
     public CleanupResponseDto cleanup() {
@@ -24,24 +77,12 @@ public class AdminController {
     }
 
     @PostMapping("/instant-prices")
-    public InstantBuyPriceDto createInstantPrice(
-            @Valid @RequestBody InstantBuyPriceUpsertRequestDto req
-    ) {
-        return adminService.upsertInstantBuyPrice(
-                req.getSkinId(),
-                req.getUserId(),
-                req.getPrice()
-        );
-    }
+    public InstantBuyPriceDto upsert(@Valid @RequestBody InstantBuyPriceUpsertRequestDto dto,
+                                     @RequestHeader(value="Authorization", required=false) String authHeader) {
 
-    @PutMapping("/instant-prices")
-    public InstantBuyPriceDto updateInstantPrice(
-            @Valid @RequestBody InstantBuyPriceUpsertRequestDto req
-    ) {
-        return adminService.upsertInstantBuyPrice(
-                req.getSkinId(),
-                req.getUserId(),
-                req.getPrice()
-        );
+        User admin = authService.requireUser(authHeader);
+        if (admin.getRole() != UserRole.ADMIN) throw new UnauthorizedException("Admin only");
+
+        return adminService.upsertInstantBuyPrice(dto.getSkinId(), admin.getId(), dto.getPrice());
     }
 }

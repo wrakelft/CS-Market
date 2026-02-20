@@ -11,7 +11,9 @@ import ru.itmo.backend.exception.UnauthorizedException;
 import ru.itmo.backend.model.User;
 import ru.itmo.backend.model.UserCredential;
 import ru.itmo.backend.model.UserSession;
+import ru.itmo.backend.model.enums.DeletionRequestStatus;
 import ru.itmo.backend.model.enums.UserRole;
+import ru.itmo.backend.repository.DeletionRequestRepository;
 import ru.itmo.backend.repository.UserCredentialRepository;
 import ru.itmo.backend.repository.UserRepository;
 import ru.itmo.backend.repository.UserSessionRepository;
@@ -26,6 +28,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserCredentialRepository credentialRepository;
     private final UserSessionRepository sessionRepository;
+    private final DeletionRequestRepository deletionRequestRepository;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
@@ -72,6 +75,10 @@ public class AuthService {
             throw new UnauthorizedException("Wrong password");
         }
 
+        if (deletionRequestRepository.existsByUser_IdAndStatus(user.getId(), DeletionRequestStatus.APPROVED)) {
+            throw new UnauthorizedException("Account deleted");
+        }
+
         String token = createSession(user);
         return AuthResponseDto.builder().token(token).user(toDto(user)).build();
     }
@@ -101,7 +108,14 @@ public class AuthService {
             throw new UnauthorizedException("Session expired");
         }
 
-        return s.getUser();
+        Integer userId = s.getUser().getId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        if (deletionRequestRepository.existsByUser_IdAndStatus(user.getId(), DeletionRequestStatus.APPROVED)) {
+            throw new UnauthorizedException("Account deleted");
+        }
+        return user;
     }
 
     private String createSession(User user) {

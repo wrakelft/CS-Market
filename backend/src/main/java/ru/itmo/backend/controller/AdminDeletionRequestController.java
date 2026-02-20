@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/admin/deletion-requests")
+@RequestMapping("/admin/deletion-requestsdfvdfdfsdfsd")
 public class AdminDeletionRequestController {
 
     private final DeletionRequestService deletionRequestService;

@@ -13,6 +13,7 @@ import ru.itmo.backend.model.User;
 import ru.itmo.backend.model.enums.DeletionRequestStatus;
 import ru.itmo.backend.repository.DeletionRequestRepository;
 import ru.itmo.backend.repository.UserRepository;
+import ru.itmo.backend.repository.UserSessionRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ public class DeletionRequestService {
 
     private final DeletionRequestRepository deletionRequestRepository;
     private final UserRepository userRepository;
+    private final UserSessionRepository userSessionRepository;
     private final AuthService authService;
 
     // 1) создать запрос на удаление
@@ -69,7 +71,6 @@ public class DeletionRequestService {
                 .toList();
     }
 
-    // 4) approve (только смена статуса)
     @Transactional
     public DeletionRequestDto approve(Integer requestId) {
         if (requestId == null || requestId <= 0) throw new BadRequestException("requestId must be > 0");
@@ -82,7 +83,13 @@ public class DeletionRequestService {
         }
 
         req.setStatus(DeletionRequestStatus.APPROVED);
-        return toDto(deletionRequestRepository.save(req));
+
+        DeletionRequest saved = deletionRequestRepository.save(req);
+
+        Integer userId = req.getUser().getId();
+        userSessionRepository.deleteAllByUser_Id(userId);
+
+        return toDto(saved);
     }
 
     @Transactional
@@ -108,10 +115,8 @@ public class DeletionRequestService {
         return DeletionRequestDto.builder()
                 .id(r.getId())
                 .userId(r.getUser() != null ? r.getUser().getId() : null)
-                // если в DTO status String — вот так:
                 .status(r.getStatus() != null ? r.getStatus().name() : null)
                 .createdAt(r.getCreatedAt())
-                // reason/decidedAt НЕ трогаем (их нет в Entity/БД)
                 .build();
     }
 
