@@ -13,6 +13,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ✅ чтобы layout мог тянуться на всю ширину */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -24,8 +31,7 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  display: block;        /* ✅ было flex */
   min-width: 320px;
   min-height: 100vh;
 }

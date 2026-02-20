@@ -11,6 +11,7 @@ import RequireAuth from "./auth/RequireAuth";
 import ErrorBanner from "./components/ErrorBanner";
 import { setApiErrorHandler } from "./api";
 import type { ApiError } from "./api";
+import MarketSale from "./pages/MarketSale";
 
 export default function App() {
     const [error, setError] = useState<ApiError | null>(null);
