@@ -29,6 +29,12 @@ public class TicketController {
         return supportService.getUserTickets(userId);
     }
 
+    @GetMapping("/{ticketId}")
+    public TicketDto getTicket(@PathVariable Integer ticketId,
+                               @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        return supportService.getTicket(ticketId, authHeader);
+    }
+
     // GET /tickets/{ticketId}/attachments
     @GetMapping("/{ticketId}/attachments")
     public List<AttachmentDto> getAttachments(@PathVariable Integer ticketId) {

@@ -25,6 +25,7 @@ public class SupportService {
     private final TicketRepository ticketRepository;
     private final AttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final AuthService authService;
 
     @Transactional
     public TicketDto createTicket(CreateTicketRequest req) {
@@ -181,5 +182,40 @@ public class SupportService {
         }
 
         attachmentRepository.deleteById(attachmentId);
+    }
+
+    @Transactional(readOnly = true)
+    public TicketDto getTicket(Integer ticketId, String authHeader) {
+        if (ticketId == null || ticketId <= 0) {
+            throw new BadRequestException("ticketId must be > 0");
+        }
+
+        User requester = authService.requireUser(authHeader);
+
+        Ticket t = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new NotFoundException("Ticket not found: " + ticketId));
+
+        Integer ownerId = t.getUser() != null ? t.getUser().getId() : null;
+        if (ownerId == null || !ownerId.equals(requester.getId())) {
+            throw new ru.itmo.backend.exception.UnauthorizedException("Not your ticket");
+        }
+
+        List<AttachmentDto> attDtos = attachmentRepository.findAllByTicket_Id(t.getId()).stream()
+                .map(a -> AttachmentDto.builder()
+                        .id(a.getId())
+                        .fileName(a.getFileName())
+                        .fileUrl(a.getFileUrl())
+                        .build())
+                .toList();
+
+        return TicketDto.builder()
+                .id(t.getId())
+                .topic(t.getTopic())
+                .description(t.getDescription())
+                .userId(ownerId)
+                .createdAt(t.getCreatedAt())
+                .closedAt(t.getClosedAt())
+                .attachments(attDtos)
+                .build();
     }
 }
