@@ -52,8 +52,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         setUserState(null);
     };
 
+    const refreshUser = async () => {
+        const token = getToken();
+        if (!token) {
+            setUserState(null);
+            return;
+        }
+        try {
+            const u = await authApi.me(); // me() уже возвращает balance
+            setUserState(u);
+        } catch {
+            clearToken();
+            setUserState(null);
+        }
+    };
+
     const value = useMemo(
-        () => ({ user, initializing, login, logout }),
+        () => ({ user, initializing, login, logout, refreshUser }),
         [user, initializing]
     );
 

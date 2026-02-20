@@ -48,8 +48,22 @@ export default function AppLayout() {
             >
                 <div style={{fontWeight: 700}}>CS Market</div>
                 <div style={{display: "flex", alignItems: "center", gap: 10}}>
-                    <div style={{opacity: 0.8, fontSize: 14}}>Stage 4 vibes 🚀</div>
-
+                    {user && (
+                        <div
+                            style={{
+                                padding: "8px 12px",
+                                borderRadius: 999,
+                                border: "1px solid rgba(255,255,255,0.16)",
+                                background: "rgba(255,255,255,0.06)",
+                                fontWeight: 900,
+                                fontSize: 13,
+                                whiteSpace: "nowrap",
+                            }}
+                            title="Текущий баланс"
+                        >
+                            Balance: {user.balance}₽
+                        </div>
+                    )}
                     {user ? (
                         <>
       <span style={{opacity: 0.85, fontSize: 14}}>
