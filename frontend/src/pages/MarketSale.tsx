@@ -281,12 +281,16 @@ export default function MarketSale() {
                                 gap: 8,
                             }}
                         >
-                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                                <div style={{ fontWeight: 700, lineHeight: "20px" }}>{x.skinName}</div>
-                                <div style={{ fontWeight: 800, fontSize: 16 }}>{x.price}₽</div>
+                            <div style={{display: "flex", justifyContent: "space-between", gap: 10}}>
+                                <div style={{fontWeight: 700, lineHeight: "20px"}}>{x.skinName}</div>
+
+                                <div style={{display: "grid", justifyItems: "end", lineHeight: 1.1}}>
+                                    <div style={{fontWeight: 800, fontSize: 16}}>{x.price}₽</div>
+                                    <div style={{opacity: 0.65, fontSize: 12}}>skinId: {x.skinId}</div>
+                                </div>
                             </div>
 
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <div style={{display: "flex", gap: 8, flexWrap: "wrap"}}>
                 <span
                     style={{
                         fontSize: 12,

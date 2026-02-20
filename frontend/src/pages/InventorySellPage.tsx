@@ -22,6 +22,10 @@ type SaleListingCreated = {
     inventoryItemId: number;
 };
 
+type InstantPriceResponse = {
+    price: number;
+};
+
 export default function InventorySellPage() {
     const { user } = useAuth();
     const userId = user?.id ?? 0;
@@ -58,6 +62,35 @@ export default function InventorySellPage() {
         return i > 0 ? i : null;
     };
 
+    async function createInstantListing(item: InventoryItem) {
+        if (!userId || !item.tradable) return;
+
+        setCreatingId(item.id);
+        setSuccess(null);
+
+        try {
+            const resp = await api.get<InstantPriceResponse>(`/market/skins/${item.skinId}/instant-price`);
+            const price = resp?.price;
+
+            if (!price || price <= 0) throw new Error("Instant price is not set");
+
+            const created = await api.post<SaleListingCreated>("/market/sale-listings", {
+                sellerId: userId,
+                inventoryItemId: item.id,
+                price,
+            });
+
+            await api.post<void>(`/market/sale-listings/${created.id}/instant-sell?sellerId=${userId}`, {});
+
+            setItems((prev) => prev.filter((x) => x.id !== item.id));
+            setSuccess(`Instant sale OK! listingId=${created.id}, price=${price}₽`);
+        } catch (e) {
+            setSuccess("Не получилось instant-продать.");
+        } finally {
+            setCreatingId(null);
+        }
+    }
+
     async function createListing(item: InventoryItem) {
         if (!userId || !item.tradable) return;
 
@@ -74,7 +107,6 @@ export default function InventorySellPage() {
                 price,
             });
 
-            // убираем айтем из инвентаря (он уже занят продажей)
             setItems((prev) => prev.filter((x) => x.id !== item.id));
 
             setSuccess(`Выставлено! listingId=${created.id}, price=${created.price}₽`);
@@ -162,14 +194,19 @@ export default function InventorySellPage() {
                 </span>
                             </div>
 
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center" }}>
+                            <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "1fr auto",
+                                gap: 10,
+                                alignItems: "center"
+                            }}>
                                 <input
                                     type="number"
                                     min={1}
                                     step={1}
                                     placeholder="price ₽"
                                     value={priceStr}
-                                    onChange={(e) => setPriceById((p) => ({ ...p, [x.id]: e.target.value }))}
+                                    onChange={(e) => setPriceById((p) => ({...p, [x.id]: e.target.value}))}
                                     style={{
                                         padding: "10px 12px",
                                         borderRadius: 10,
@@ -181,23 +218,43 @@ export default function InventorySellPage() {
                                     disabled={!x.tradable || busy}
                                 />
 
-                                <button
-                                    onClick={() => void createListing(x)}
-                                    disabled={!x.tradable || busy || !priceOk}
-                                    title={!x.tradable ? "Этот предмет сейчас нельзя выставить" : !priceOk ? "Цена должна быть > 0" : undefined}
-                                    style={{
-                                        borderRadius: 10,
-                                        padding: "10px 12px",
-                                        border: "1px solid rgba(255,255,255,0.15)",
-                                        background: x.tradable ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
-                                        color: "inherit",
-                                        cursor: !x.tradable || busy || !priceOk ? "not-allowed" : "pointer",
-                                        fontWeight: 700,
-                                        whiteSpace: "nowrap",
-                                    }}
-                                >
-                                    {busy ? "Creating..." : "Sell"}
-                                </button>
+                                <div style={{display: "flex", gap: 8, alignItems: "center"}}>
+                                    <button
+                                        onClick={() => void createInstantListing(x)}
+                                        disabled={!x.tradable || busy}
+                                        title={!x.tradable ? "Этот предмет сейчас нельзя выставить" : undefined}
+                                        style={{
+                                            borderRadius: 10,
+                                            padding: "10px 12px",
+                                            border: "1px solid rgba(255,255,255,0.15)",
+                                            background: x.tradable ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                                            color: "inherit",
+                                            cursor: !x.tradable || busy ? "not-allowed" : "pointer",
+                                            fontWeight: 800,
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {busy ? "..." : "Instant"}
+                                    </button>
+
+                                    <button
+                                        onClick={() => void createListing(x)}
+                                        disabled={!x.tradable || busy || !priceOk}
+                                        title={!x.tradable ? "Этот предмет сейчас нельзя выставить" : !priceOk ? "Цена должна быть > 0" : undefined}
+                                        style={{
+                                            borderRadius: 10,
+                                            padding: "10px 12px",
+                                            border: "1px solid rgba(255,255,255,0.15)",
+                                            background: x.tradable ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.02)",
+                                            color: "inherit",
+                                            cursor: !x.tradable || busy || !priceOk ? "not-allowed" : "pointer",
+                                            fontWeight: 700,
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {busy ? "Creating..." : "Sell"}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     );
